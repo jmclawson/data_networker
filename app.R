@@ -12,7 +12,7 @@ source("R/reactives.R")
 
 ##### UI #####
 ui <- page_sidebar(
-  # title = "networking data",
+  # title = "data networker",
   theme = bs_theme(
     "navbar-bg" = "#e8e8e8",
     primary = "#6c75ad",
@@ -214,10 +214,6 @@ ui <- page_sidebar(
           p("The network calculations here don't yet normalize values between 0 and 1. Additionally, I haven't compared results to Gephi, so you should probably be consistent in the tools you use for calculating these values. (That said,", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "is a trusted library with more than 2 million downloads from CRAN, so it's probably dependable even if it calculates things differently than Gephi.)"),
           p("There's not much customization available for the D3 visualization, and I don't plan to add any. D3 nodes might seem to go missing when data changes. They're still there! Find them tucked away trying to hide in the upper-left corner of the page. They'll shuffle back into place when you click them. Alternatively, try toggling the sidebar."),
           p("Sample data from", em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")), "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a", a(href="https://mathhumanists.org", "Mathematical Humanists"), "workshop led by Jessica Otis and Ashley Sanders.")),
-        # card(
-        #   card_header("references"),
-        #   p("The", a(href = "https://ggplot2.tidyverse.org", "ggplot2"), "visualization uses", a(href = "https://briatte.github.io/ggnetwork/", "ggnetwork"), "to calculate geometries and to lay out the nodes and edges. Network layouts listed here are made available by the", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "package for social networking."),
-        #   p("The", strong("D3"), "visualization uses the", a(href = "https://rstudio.github.io/r2d3/", "r2d3"), "package as an interface to D3. It also leans heavily on the", a(href = "https://cran.r-project.org/web/packages/jsonlite/index.html", "jsonlite"), "package to manage JSON."))),
       card(
         card_header("shinyapps.io"),
         p("This page is hosted on a free account with limitations on time and processing power, so please don't spread the link too widely. If it's useful enough to keep around, I'll move it somewhere more sustainable. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
@@ -229,7 +225,6 @@ ui <- page_sidebar(
 ##### Server #####
 
 server <- function(input, output) {
-  # bs_themer()
   the_csv <- reactive({
     if (is.null(input$file1)) {
       readr::read_csv("data/pepys_reciprocity-edges_extra.csv") |>

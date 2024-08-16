@@ -88,17 +88,13 @@ combine_columns <- function(df, col1, col2, new) {
     rlang::enquo() |>
     rlang::quo_text() |>
     str_remove_all("[`]")
-  cat(col1_str)
-  cat(col2_str)
 
   if (col1_str %in% colnames(df) &&
       col2_str %in% colnames(df)) {
-    message("Gonnnnna dooooo ittt!!!")
     df |>
       mutate(
         {{ new }} := paste({{ col1 }}, {{ col2 }}))
   } else {
-    message("______x_______")
     df
   }
 }
