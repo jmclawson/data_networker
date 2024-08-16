@@ -1,0 +1,30 @@
+date,source,target,type (favor/gift),gender,position
+1667-04-03,"Batten, William","St. Michel, Balthazar",favor,M,Sir
+1667-04-03,"Brouncker, William","Carkesse, James",favor,M,Lord
+1667-04-04,"Carteret, George","Coventry, William",favor,M,Sir
+1967-04-01,"Coventry, William","Pepys, Samuel",favor,M,"Statesman, Sir"
+1667-04-01,"Coventry, William","Pepys, Samuel",favor,M,"Statesman, Sir"
+1667-04-02,"Deane, Anthony","Pepys, Samuel",gift,M,Mr.
+1667-04-01,"Minnes, John","Pepys, Samuel",favor,M,"Vice Admiral, Sir"
+1667-04-04,"Pepys, Samuel","St. Michel, Balthazar",favor,M,ego
+1667-04-04,"Pepys, Samuel","St. Michel, Balthazar",favor,M,ego
+1667-04-01,"Pepys, Samuel","St. Michel, Balthazar",favor,M,ego
+1667-04-04,"Pepys, Samuel","Monck, George",favor,M,ego
+1667-04-05,"Pepys, Samuel",Howlett,favor,M,ego
+1667-04-05,"Pepys, Samuel","Pearse, Elizabeth",favor,M,ego
+1667-04-06,"Pepys, Samuel","St. Michel, Balthazar",favor,M,ego
+1667-04-06,"Pepys, Samuel","St. Michel, Balthazar",favor,M,ego
+1667-04-07,"Pepys, Samuel","St. Michel, Balthazar",favor,M,ego
+1667-04-07,"Pepys, Samuel","St. Michel, Balthazar",favor,M,ego
+1667-04-07,"Pepys, Samuel","St. Michel, Balthazar",favor,M,ego
+1667-04-07,"Pepys, Samuel","Turner, Elizabeth",favor,M,ego
+1667-04-04,"St. Michel, Balthazar","Pepys, Elizabeth",favor,M,Brother in law
+1667-04-07,"Stuart, Charles II","Belasyse, John",favor,M,king
+1667-04-03,"Stuart, James","St. Michel, Balthazar",favor,M,Duke
+1667-04-07,"Turner, Elizabeth","Pepys, Samuel",favor,F,Mrs.; wife of Thomas Turner
+,"Belasyse, John",,,M,Baron
+,"Carkesse, James",,,M,
+,Howlett,,,F,Mrs.
+,"Monck, George",,,M,Duke of Albemarle
+,"Pearse, Elizabeth",,,F,Mrs.
+,"Pepys, Elizabeth",,,F,wife
