@@ -79,7 +79,36 @@ extend_column <- function(df, col, extend_str) {
   }
 }
 
-combine_columns <- function(df, col1, col2, new) {
+divide_column <- function(df, col0, split, new1, new2) {
+  col0_str <- col0 |>
+    rlang::enquo() |>
+    rlang::quo_text() |>
+    str_remove_all("[`]")
+  new1_str <- new1 |>
+    rlang::enquo() |>
+    rlang::quo_text() |>
+    str_remove_all("[`]")
+  new2_str <- new2 |>
+    rlang::enquo() |>
+    rlang::quo_text() |>
+    str_remove_all("[`]")
+
+  if (col0_str %in% colnames(df) &&
+      !new1_str %in% colnames(df) &&
+      !new2_str %in% colnames(df)) {
+    df |>
+      mutate(
+        {{ new1 }} := {{ col0 }} |>
+          str_remove_all(paste0(split,".*")),
+        {{ new2 }} := {{ col0 }} |>
+          str_remove_all(paste0(".*",split))
+        )
+  } else {
+    df
+  }
+}
+
+combine_columns <- function(df, col1, col2, combine = " ", new) {
   col1_str <- col1 |>
     rlang::enquo() |>
     rlang::quo_text() |>
@@ -93,7 +122,7 @@ combine_columns <- function(df, col1, col2, new) {
       col2_str %in% colnames(df)) {
     df |>
       mutate(
-        {{ new }} := paste({{ col1 }}, {{ col2 }}))
+        {{ new }} := paste0({{ col1 }}, combine, {{ col2 }}))
   } else {
     df
   }

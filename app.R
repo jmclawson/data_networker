@@ -9,7 +9,6 @@ library(colourpicker)
 source("R/helpers.R")
 source("R/reactives.R")
 
-
 ##### UI #####
 ui <- page_sidebar(
   # title = "data networker",
@@ -21,13 +20,22 @@ ui <- page_sidebar(
     ),
   tags$head(tags$style(
     HTML(
-      "
-        .bslib-full-screen-enter {
-          bottom: var(--bslib-full-screen-enter-bottom);
-        }
-      "
+          "
+            .bslib-value-box {
+              margin-bottom: 4px !important;
+            }
+          "
     )
   )),
+  # tags$head(tags$style(
+  #   HTML(
+  #     "
+  #       .bslib-full-screen-enter {
+  #         bottom: var(--bslib-full-screen-enter-bottom);
+  #       }
+  #     "
+  #   )
+  # )),
   sidebar = accordion(
     multiple = FALSE,
     accordion_panel(
@@ -35,35 +43,59 @@ ui <- page_sidebar(
       icon = bsicons::bs_icon("cloud-arrow-up"),
       fileInput("file1", "Choose CSV File", accept = ".csv")),
     accordion_panel(
-      "Mend",
-      icon = bsicons::bs_icon("bandaid"),
+      "Adjust",
+      icon = bsicons::bs_icon("dpad"),
+      checkboxInput("do_separate",
+                    label = span(bsicons::bs_icon("arrows-expand"), "Separate one column's values into multiple rows."),
+                    value = FALSE
+      ),
+      conditionalPanel(
+        condition = "input.do_separate",
+        wellPanel(
+          selectInput("separate_col",
+                      "Column",
+                      choices = c("")),
+          textInput("separate", "Separate at", placeholder = "(e.g., comma, underscore, space)")),
+        p()
+      ),
       checkboxInput("do_split",
-                    label = "Split one column's values into multiple rows.",
+                    label = span(bsicons::bs_icon("arrows-expand-vertical"), "Split one column into two."),
                     value = FALSE
       ),
       conditionalPanel(
         condition = "input.do_split",
-        selectInput("split_col",
-                    "Column",
-                    choices = c("")),
-        textInput("split", "Split at")),
+        wellPanel(
+          selectInput("split_col",
+                      "Column",
+                      choices = c("")),
+          textInput("split", "Split at", placeholder = "(e.g., comma, underscore, space)"),
+          textInput("split_col1", "New column name 1", value = "col1"),
+          textInput("split_col2", "New column name 2", value = "col2")
+        ),
+        p()
+      ),
       checkboxInput("do_combo",
-                    label = "Combine two columns into one.",
+                    label = span(bsicons::bs_icon("arrows-collapse-vertical"), "Combine two columns into one."),
                     value = FALSE
       ),
       conditionalPanel(
         condition = "input.do_combo",
-        selectInput("combine_col1",
-                    "Column 1",
-                    choices = c("")),
-        selectInput("combine_col2",
-                    "Column 2",
-                    choices = c("")),
-        textInput("combine_name", "Name", value = "combo")
-      )),
+        wellPanel(
+          selectInput("combine_col1",
+                      "Column 1",
+                      choices = c("")),
+          selectInput("combine_col2",
+                      "Column 2",
+                      choices = c("")),
+          textInput("combine", "Combine at",
+                    placeholder = "(e.g., comma, underscore, space)"),
+          textInput("combine_name", "Name", value = "combo")
+        )
+        )
+      ),
     accordion_panel(
       "Choose", id = "enforce_columns",
-      icon = bsicons::bs_icon("list-stars"),
+      icon = bsicons::bs_icon("list-check"),
       selectInput("source", "Source column", choices = c("source")),
       selectInput("target", "Target column", choices = c("target"))),
     accordion_panel(
@@ -75,17 +107,19 @@ ui <- page_sidebar(
       ),
       conditionalPanel(
         condition = "input.do_sna",
-        radioButtons("choose_directedness",
-                     "Graph mode",
-                     choices = c("directed",
-                                 "undirected")),
-        selectInput("add_measures",
-                    label = "Choose measurements",
-                    multiple = TRUE,
-                    choices = c("degree", "betweenness", "closeness", "prestige", "stress_centrality")
-        ),
-        p("Degree reports total (in- and out-degree) values. All measurements use",
-          a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "."),
+        wellPanel(
+          radioButtons("choose_directedness",
+                       "Graph mode",
+                       choices = c("directed",
+                                   "undirected")),
+          selectInput("add_measures",
+                      label = "Choose measurements",
+                      multiple = TRUE,
+                      choices = c("degree", "betweenness", "closeness", "prestige", "stress_centrality")
+          ),
+          p("Degree reports total (in- and out-degree) values. All measurements use the",
+            a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "package.")
+        )
       )
     ),
     accordion_panel(
@@ -93,7 +127,8 @@ ui <- page_sidebar(
       icon = bsicons::bs_icon("cloud-download"),
       downloadLink("download_csv", "Gephi edges file"),
       downloadLink("download_json", "JSON file for D3"),
-      downloadLink("download_png", "Plot as PNG")),
+      downloadLink("download_png", "Plot as PNG"),
+      downloadLink("download_pdf", "Plot as PDF")),
     accordion_panel(
       "Customize Plot",
       icon = bsicons::bs_icon("palette"),#diagram-3
@@ -115,16 +150,19 @@ ui <- page_sidebar(
       ),
       conditionalPanel(
         condition = "input.show_weight",
-        radioButtons("weight_from",
-                     "from",
-                     choices = c("count", "column"),
-                     selected = "count"),
-        conditionalPanel(
-          condition = "input.weight_from == 'column'",
-          selectInput("weight_col",
-                      "column:",
-                      choices = c(""))
-        )
+        wellPanel(
+          radioButtons("weight_from",
+                       "from",
+                       choices = c("count", "column"),
+                       selected = "count"),
+          conditionalPanel(
+            condition = "input.weight_from == 'column'",
+            selectInput("weight_col",
+                        "column:",
+                        choices = c(""))
+          )
+        ),
+        p()
       ),
       checkboxInput("show_color",
                     label = "Color",
@@ -132,26 +170,29 @@ ui <- page_sidebar(
       ),
       conditionalPanel(
         condition = "input.show_color",
-        radioButtons(
-          inputId = "color_branch",
-          label = "Choose color source",
-          selected = "custom",
-          choices = c("custom", "from column")),
-        conditionalPanel(
-          condition = "input.color_branch == 'custom'",
-          colourInput(
-            "custom_col",
-            label = NULL,
-            value = "#6c75adaa",
-            allowTransparent = TRUE,
-            closeOnClick = TRUE)
+        wellPanel(
+          radioButtons(
+            inputId = "color_branch",
+            label = "Choose color source",
+            selected = "custom",
+            choices = c("custom", "from column")),
+          conditionalPanel(
+            condition = "input.color_branch == 'custom'",
+            colourInput(
+              "custom_col",
+              label = NULL,
+              value = "#6c75adaa",
+              allowTransparent = TRUE,
+              closeOnClick = TRUE)
+          ),
+          conditionalPanel(
+            condition = "input.color_branch == 'from column'",
+            selectInput("color_col",
+                        "Color points by column",
+                        choices = c(""))
+          )
         ),
-        conditionalPanel(
-          condition = "input.color_branch == 'from column'",
-          selectInput("color_col",
-                      "Color points by column",
-                      choices = c(""))
-        )
+        p()
       ),
       checkboxInput("show_label",
                     label = "Label",
@@ -159,9 +200,12 @@ ui <- page_sidebar(
       ),
       conditionalPanel(
         condition = "input.show_label",
-        selectInput("label_col",
-                    "Label by values in column",
-                    choices = c(""))
+        wellPanel(
+          selectInput("label_col",
+                      "Label by values in column",
+                      choices = c(""))
+        ),
+        p()
       ),
       selectInput("size_col",
                   "Point size by column",
@@ -183,15 +227,61 @@ ui <- page_sidebar(
            max_height = 300,
            full_screen = TRUE,
            tableOutput("csv_contents")),
-      layout_columns(
-        card(id = "adjusted",
-             card_header("adjusted"),
-             max_height = 450,
-             full_screen = TRUE,
-             tableOutput("contents")),
-        card(card_header("geometry for ggplot2"),
-             max_height = 450,
-             tableOutput("ggt")))),
+      fixedRow(
+        layout_columns(
+          col_widths = c(9,3),
+          card(
+            max_height = 380,
+            full_screen = TRUE,
+            tabsetPanel(
+              # type = "pills",
+              tabPanel(
+                title = "Adjusted data",
+                tableOutput("contents")),
+              tabPanel(
+                title = "Geometry for ggplot2",
+                tableOutput("ggt"))
+            )
+          ),
+          column(
+            12,
+            fluidRow(
+              value_box(
+                title = "Nodes",
+                max_height = (380/3)-2,
+                fill = TRUE,
+                value = textOutput("num_nodes"),
+                showcase = bsicons::bs_icon("diagram-3", size = "0.8em"),#uiOutput("icon"),
+                showcase_layout = "top right",
+                theme = "primary text-white"
+              )
+            ),
+            fluidRow(
+              value_box(
+                title = "Edges",
+                max_height = (380/3)-3,
+                fill = TRUE,
+                value = textOutput("num_edges"),
+                showcase = bsicons::bs_icon("bezier2", size = "0.8em"),
+                showcase_layout = "top right",
+                theme = "secondary"
+              )
+            ),
+            fluidRow(
+              value_box(
+                title = span("Connected", br(), "Components"),
+                max_height = (380/3)-3,
+                fill = TRUE,
+                value = textOutput("num_components"),
+                showcase = bsicons::bs_icon("layout-wtf", size = "0.6em"),
+                showcase_layout = "top right",
+                theme = "text-blue"
+              )
+            )
+          )
+        )
+      )
+      ),
     tabPanel(title = "Visualize with ggplot2",
              plotOutput("ggv",
                         height = "90vh")),
@@ -203,17 +293,17 @@ ui <- page_sidebar(
     tabPanel(
       title = "Notes",
       layout_columns(
-        uiOutput("num_components"),
-        uiOutput("num_nodes"),
-        uiOutput("num_edges"),
+        # uiOutput("num_components"),
+        # uiOutput("num_nodes"),
+        # uiOutput("num_edges"),
         uiOutput("num_connectedness")
       ),
       layout_columns(
         card(
           card_header("Methods"),
+          p("Sample data from", em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")), "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a", a(href="https://mathhumanists.org", "Mathematical Humanists"), "workshop led by Jessica Otis and Ashley Sanders."),
           p("The network calculations here don't yet normalize values between 0 and 1. Additionally, I haven't compared results to Gephi, so you should probably be consistent in the tools you use for calculating these values. (That said,", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "is a trusted library with more than 2 million downloads from CRAN, so it's probably dependable even if it calculates things differently than Gephi.)"),
-          p("There's not much customization available for the D3 visualization, and I don't plan to add any. D3 nodes might seem to go missing when data changes. They're still there! Find them tucked away trying to hide in the upper-left corner of the page. They'll shuffle back into place when you click them. Alternatively, try toggling the sidebar."),
-          p("Sample data from", em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")), "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a", a(href="https://mathhumanists.org", "Mathematical Humanists"), "workshop led by Jessica Otis and Ashley Sanders.")),
+          p("There's not much customization available for the D3 visualization, and I don't plan to add any. D3 nodes might seem to go missing when data changes. They're still there! Find them tucked away trying to hide in the upper-left corner of the page. They'll shuffle back into place when you click them. Alternatively, try toggling the sidebar.")),
       card(
         card_header("shinyapps.io"),
         p("This page is hosted on a free account with limitations on time and processing power, so please don't spread the link too widely. If it's useful enough to keep around, I'll move it somewhere more sustainable. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
@@ -266,6 +356,26 @@ server <- function(input, output) {
         })
 
     updateSelectInput(
+      inputId = "separate_col",
+      choices = colnames(the_middle()),
+      selected =
+        if (input$separate_col %in% colnames(the_csv())) {
+          input$separate_col
+        } else {
+          ""
+        })
+
+    updateSelectInput(
+      inputId = "split_col",
+      choices = colnames(the_middle()),
+      selected =
+        if (input$split_col %in% colnames(the_csv())) {
+          input$split_col
+        } else {
+          ""
+        })
+
+    updateSelectInput(
       inputId = "combine_col1",
       choices = colnames(the_middle()),
       selected =
@@ -304,6 +414,24 @@ server <- function(input, output) {
       choices = c("", colnames(the_result())))
   })
 
+  observeEvent(input$do_split,{
+    updateTextInput(
+      inputId = "split",
+      value =
+        if (input$do_split == FALSE) {
+          ""
+        })},
+    ignoreInit = TRUE)
+
+  observeEvent(input$do_separate,{
+    updateTextInput(
+      inputId = "separate",
+      value =
+        if (input$do_separate == FALSE) {
+          ""
+        })},
+    ignoreInit = TRUE)
+
   observeEvent(input$show_label,{
     updateSelectInput(
       inputId = "label_col",
@@ -334,14 +462,30 @@ server <- function(input, output) {
 
   observeEvent(input$file1,{
     updateSelectInput(
+      inputId = "separate_col",
+      choices = colnames(the_middle()),
+      # selected =
+      #   if (input$separate_col %in% colnames(the_csv())) {
+      #     input$separate_col
+      #   } else {
+      #     ""
+      #   }
+      )
+
+    updateSelectInput(
       inputId = "split_col",
       choices = colnames(the_middle()),
-      selected =
-        if (input$split_col %in% colnames(the_csv())) {
-          input$split_col
-        } else {
-          ""
-        })
+      # selected =
+      #   if (input$split_col %in% colnames(the_csv())) {
+      #     input$split_col
+      #   } else {
+      #     ""
+      #   }
+    )
+
+    updateTextInput(
+      inputId = "separate",
+      value = "")
 
     updateTextInput(
       inputId = "split",
@@ -376,6 +520,10 @@ server <- function(input, output) {
         })
 
     updateSelectInput(
+      inputId = "separate_col",
+      selected = "")
+
+    updateSelectInput(
       inputId = "split_col",
       selected = "")
 
@@ -383,6 +531,8 @@ server <- function(input, output) {
       inputId = "size_col",
       selected = "",
       choices = c("", colnames(the_result())))
+
+    updateCheckboxInput(inputId = "do_separate", value = FALSE)
 
     updateCheckboxInput(inputId = "do_split", value = FALSE)
 
@@ -407,12 +557,23 @@ server <- function(input, output) {
       my_middle <- my_middle |>
         combine_columns(!!sym(input$combine_col1),
                         !!sym(input$combine_col2),
+                        input$combine,
                         !!sym(input$combine_name))
     }
 
-    if (nchar(input$split) > 0) {
+    if (nchar(input$separate) > 0 &&
+        input$separate_col != "") {
       my_middle <- my_middle |>
-        extend_column(!!sym(input$split_col), input$split)
+        extend_column(!!sym(input$separate_col), input$separate)
+    }
+
+    if (nchar(input$split) > 0 &&
+        input$split_col != "") {
+      my_middle <- my_middle |>
+        divide_column(!!sym(input$split_col),
+                      input$split,
+                      !!sym(input$split_col1),
+                      !!sym(input$split_col2))
     }
 
     my_middle
@@ -430,6 +591,47 @@ server <- function(input, output) {
     )
     the_result() |>
       get_network_df(input)
+  })
+
+  the_width <- reactive({
+    input$width
+  })
+
+  the_height <- reactive({
+    input$height
+  })
+
+  output$num_nodes <- renderText({
+    validate(
+      need(input$source %in% colnames(the_middle()), "?"),
+      need(input$target %in% colnames(the_middle()), "?")
+    )
+    c(the_result()$source, the_result()$target) |>
+      unique() |>
+      {\(x) x[!is.na(x)]}() |>
+      length()
+  })
+
+  output$num_edges <- renderText({
+    validate(
+      need(input$source %in% colnames(the_middle()), "?"),
+      need(input$target %in% colnames(the_middle()), "?")
+    )
+    the_result() |>
+      drop_na(source, target) |>
+      distinct() |>
+      nrow()
+  })
+
+  output$num_components <- renderText({
+    validate(
+      need(input$source %in% colnames(the_middle()), "?"),
+      need(input$target %in% colnames(the_middle()), "?")
+    )
+    the_result() |>
+      drop_na(source, target) |>
+      network::network(multiple = TRUE) |>
+      sna::components("weak")
   })
 
   output$d3 <- renderD3({
@@ -495,13 +697,31 @@ server <- function(input, output) {
   )
 
   output$download_png <- downloadHandler(
-    filename = ifelse(is.null(input$file1),
-                      "pepys-reciprocity.png",
-                      input$file1 |>
-                        str_remove_all("[.].*$") |>
-                        paste0(".png")),
+    filename = function() {
+      if (is.null(input$file1)) {
+        "pepys-reciprocity.png"
+      } else {
+        input$file1
+      } |>
+        str_remove_all("[.].*$") |>
+        paste0(".png")
+    },
     content = function(file) {
-      ggsave(file)
+      ggsave(file, width = 7, height = 7)
+    }
+  )
+  output$download_pdf <- downloadHandler(
+    filename = function() {
+      if (is.null(input$file1)) {
+        "pepys-reciprocity.pdf"
+      } else {
+        input$file1
+      } |>
+        str_remove_all("[.].*$") |>
+        paste0(".pdf")
+    },
+    content = function(file) {
+      ggsave(file, width = 10, height = 10)
     }
   )
 
