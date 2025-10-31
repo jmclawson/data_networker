@@ -5,17 +5,32 @@ df2d3_json <- function(
     df,
     source = source,
     target = target,
-    group = group,
-    weight = weight) {
+    color_col = "",
+    degree_col = "",
+    weight_col = "") {
   the_df <- df
-  if (!deparse(substitute(group)) %in% colnames(the_df)) {
+  if (color_col == "" || !color_col %in% colnames(the_df)) {
     the_df <- the_df |>
-      mutate({{ group }} := 1)
+      mutate(color = 1)
+  } else {
+    the_df <- the_df |>
+      mutate(color = .data[[color_col]])
   }
 
-  if (!deparse(substitute(weight)) %in% colnames(the_df)) {
+  if (degree_col == "" || !degree_col %in% colnames(the_df)) {
     the_df <- the_df |>
-      mutate({{ weight }} := 1)
+      mutate(degree = 5)
+  } else {
+    the_df <- the_df |>
+      mutate(degree = 5 * as.integer(cut_interval(.data[[degree_col]], n = 4)))
+  }
+
+  if (weight_col == "" || !weight_col %in% colnames(the_df)) {
+    the_df <- the_df |>
+      mutate(weight = 1)
+  } else {
+    the_df <- the_df |>
+      mutate(weight = .data[[weight_col]])
   }
 
   the_df <- the_df |>
@@ -40,7 +55,8 @@ df2d3_json <- function(
     the_df |>
     dplyr::select(
       id = {{ source }},
-      group = {{ group }}) |>
+      group = color,
+      size = degree) |>
     dplyr::distinct()
 
   json_edges <-
@@ -49,7 +65,7 @@ df2d3_json <- function(
     dplyr::select(
       source = {{ source }},
       target = {{ target }},
-      value = {{ weight }}) |>
+      value = weight) |>
     dplyr::distinct()
 
   list(

@@ -39,9 +39,19 @@ ui <- page_sidebar(
   sidebar = accordion(
     multiple = FALSE,
     accordion_panel(
-      "Import Data",
+      "Load Data",
       icon = bsicons::bs_icon("cloud-arrow-up"),
-      fileInput("file1", "Choose CSV File", accept = ".csv")),
+      shiny::radioButtons(
+        "load_data","Source:",
+        choices = c(
+          "Samuel Pepys",
+          "Star Wars",
+          "Les Miserables",
+          "import CSV...")),
+      conditionalPanel(
+        condition = "input.load_data == 'import CSV...'",
+        fileInput("file1", "", accept = ".csv"))
+        ),
     accordion_panel(
       "Adjust",
       icon = bsicons::bs_icon("dpad"),
@@ -301,13 +311,16 @@ ui <- page_sidebar(
       layout_columns(
         card(
           card_header("Methods"),
-          p("Sample data from", em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")), "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a", a(href="https://mathhumanists.org", "Mathematical Humanists"), "workshop led by Jessica Otis and Ashley Sanders."),
-          p("The network calculations here don't yet normalize values between 0 and 1. Additionally, I haven't compared results to Gephi, so you should probably be consistent in the tools you use for calculating these values. (That said,", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "is a trusted library with more than 2 million downloads from CRAN, so it's probably dependable even if it calculates things differently than Gephi.)"),
-          p("There's not much customization available for the D3 visualization, and I don't plan to add any. D3 nodes might seem to go missing when data changes. They're still there! Find them tucked away trying to hide in the upper-left corner of the page. They'll shuffle back into place when you click them. Alternatively, try toggling the sidebar.")),
+          p("Pepys data from", em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")), "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a", a(href="https://mathhumanists.org", "Mathematical Humanists"), "workshop led by Jessica Otis and Ashley Sanders."),
+          p(em("Star Wars"), "data is from Evelina Gabasova, with methodology laid out in a", a(href= "https://evelinag.com/blog/2015/12-15-star-wars-social-network/index.html#how", "blog post"), "and data recorded in a", a(href = "https://github.com/evelinag/StarWars-social-network/blob/master/networks/starwars-full-interactions.json", "JSON file on GitHub.")),
+          p(em("Les Miserables"), "data is originally from Donald Knuth, prepared in this version from the", a(href = "https://raw.githubusercontent.com/mbostock/vega/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json", "JSON file"), "made available by", a(href = "https://bost.ocks.org/mike/miserables/", "Mike Bostock.")),
+          # p("The network calculations here don't normalize values between 0 and 1. Additionally, I haven't compared results to Gephi, so you should probably be consistent in the tools you use for calculating these values. (That said,", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "is a trusted library with more than 2 million downloads from CRAN, so it's probably dependable even if it calculates things differently than Gephi.)"),
+          # p("D3 nodes might seem to go missing when data changes. They're still there! Find them tucked away trying to hide in the upper-left corner of the page. They'll shuffle back into place when you click them. Alternatively, try toggling the sidebar.")
+          ),
       card(
         card_header("shinyapps.io"),
-        p("This page is hosted on a free account with limitations on time and processing power, so please don't spread the link too widely. If it's useful enough to keep around, I'll move it somewhere more sustainable. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
-        p("A note on privacy: I can't see what you're uploading, but I do have access to logs that show when there's a problem with my code (which is written in R using Shiny). Behind the scenes, things are supposed to be held only temporarily in your current session, but I can't guarantee that the file isn't cached by the server in one way or another. In other words, if it's sensitive data, you might not want to upload it.")))
+        p("This page is hosted on a free account with limitations on time and processing power, so don't be alarmed if it gets slow. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
+        p("A note on privacy: I can't see what you're uploading, but I do have access to logs that show when there's a problem with my code (which is written in R using Shiny, with JavaScript for the D3 visualization). Behind the scenes, things are supposed to be held only temporarily in your current session, but I can't guarantee that the file isn't cached by the server in one way or another. In other words, if it's sensitive data, you might not want to upload it.")))
       )
   )
 )
@@ -316,7 +329,13 @@ ui <- page_sidebar(
 
 server <- function(input, output) {
   the_csv <- reactive({
-    if (is.null(input$file1)) {
+    if (input$load_data == "Samuel Pepys") {
+      readr::read_csv("data/pepys_reciprocity-edges_extra.csv")
+    } else if (input$load_data == "Star Wars") {
+      readr::read_csv("data/interactions.csv")
+    } else if (input$load_data == "Les Miserables") {
+      readr::read_csv("data/miserables.csv")
+    } else if (is.null(input$file1)) {
       readr::read_csv("data/pepys_reciprocity-edges_extra.csv") |>
         select(-date)
     } else {
@@ -460,7 +479,7 @@ server <- function(input, output) {
         })},
     ignoreInit = TRUE)
 
-  observeEvent(input$file1,{
+  observeEvent(c(input$load_data, input$file1),{
     updateSelectInput(
       inputId = "separate_col",
       choices = colnames(the_middle()),
@@ -640,8 +659,11 @@ server <- function(input, output) {
       need(input$target %in% colnames(the_middle()), "Please choose a valid `target` column.")
     )
     the_result() |>
-      df2d3_json() |>
-      r2d3::r2d3(d3_version = 4, script = "forcegraph.js")
+      df2d3_json(color = input$color_col, degree = input$size_col, weight = input$weight_col) |>
+      r2d3::r2d3(
+        d3_version = 4,
+        script = "forcegraph.js",
+        options = list(show_labels = input$show_label))
   })
 
   output$csv_contents <- renderTable({

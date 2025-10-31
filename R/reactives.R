@@ -211,6 +211,10 @@ make_plot <- function(df, input) {
 
   if (input$color_branch == "from column" &&
       input$color_col != "") {
+    if (is.numeric(df$color_groups)) {
+      df$color_groups <- factor(df$color_groups)
+    }
+
     if (input$size_col != "") {
       my_plot <- my_plot +
         geom_nodes(
@@ -230,6 +234,12 @@ make_plot <- function(df, input) {
           size = 4) +
         labs(color = input$color_col)
     }
+    if (substr(df$color_groups[1], 1, 1) == "#") {
+      my_plot <- my_plot +
+        scale_color_identity() +
+        guides(color = "none")
+    }
+
   } else if (input$show_color &&
              input$color_branch == 'custom') {
     if (input$size_col != "") {
