@@ -5,6 +5,7 @@ library(r2d3)
 library(network)
 library(sna)
 library(ggnetwork)
+library(shinyjs)
 library(colourpicker)
 source("R/helpers.R")
 source("R/reactives.R")
@@ -20,9 +21,16 @@ ui <- page_navbar(
     version = 5,
     bootswatch = "lux",
     ),
-  tags$head(tags$style(
+  header = tags$head(tags$style(
     HTML(
     "
+    .navbar .navbar-brand {
+      font-family: Courier;
+      text-transform: lowercase;
+    }
+    .navbar .nav-item {
+      text-transform: none;
+    }
     .bslib-value-box {
       margin-bottom: 4px !important;
     }
@@ -32,6 +40,9 @@ ui <- page_navbar(
     .navbar {
       padding-top: 10px !important;
       padding-bottom: 10px !important;
+    }
+    .selectize-input {
+      max-height: 50px;
     }
 
       .bslib-sidebar-layout[data-collapsible-mobile='true']:not(.sidebar-right)>.collapse-toggle {
@@ -212,7 +223,7 @@ ui <- page_navbar(
             choices = c("custom", "from column")),
           conditionalPanel(
             condition = "input.color_branch == 'custom'",
-            colourInput(
+            colourpicker::colourInput(
               "custom_col",
               label = NULL,
               value = "#6c75adaa",
@@ -251,13 +262,14 @@ ui <- page_navbar(
                     label = "Show legend",
                     value = TRUE
       ),
-      p(a(href = "https://ggplot2.tidyverse.org", "ggplot2"), "visualization uses", a(href = "https://briatte.github.io/ggnetwork/", "ggnetwork"), "to calculate geometries for nodes and edges. Network layouts listed here are from", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), ".")
-    )
+      card(p(a(href = "https://ggplot2.tidyverse.org", "ggplot2"), "visualization uses", a(href = "https://briatte.github.io/ggnetwork/", "ggnetwork"), "to calculate geometries for nodes and edges. Network layouts listed here are from", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), ".")
+    ))
     )),
     nav_spacer(),
     nav_panel(
       title = "Tables",
       icon = icon("table"),
+      shinyjs::useShinyjs(),
       card(id = "original",
            card_header("original CSV data"),
            max_height = 300,
@@ -635,6 +647,14 @@ server <- function(input, output) {
         id = "main_sidebar",
         value = "Measure"
       )
+      updateCheckboxInput(
+        inputId = "do_sna",
+        value = TRUE
+      )
+      updateRadioButtons(
+        inputId = "choose_directedness",
+        selected = "undirected"
+      )
       bslib::accordion_panel_close(
         id = "main_sidebar",
         value = "Customize Plot"
@@ -670,9 +690,16 @@ server <- function(input, output) {
 
     updateCheckboxInput(inputId = "show_weight", value = FALSE)
 
-    updateSelectInput(
-      inputId = "add_measures",
-      selected = "")
+    if (input$load_data == "Les Miserables") {
+      updateSelectInput(
+        inputId = "add_measures",
+        selected = "degree"
+      )
+    } else {
+      updateSelectInput(
+        inputId = "add_measures",
+        selected = "")
+    }
 
   })
 
@@ -767,13 +794,18 @@ server <- function(input, output) {
     )
     the_result() |>
       df2d3_json(
-        color = input$color_col,
+        color = ifelse(
+          input$color_branch == "from column",
+          input$color_col,
+          ""),
         degree = input$size_col,
         weight = input$weight_col) |>
       r2d3::r2d3(
         d3_version = 4,
         script = "forcegraph.js",
-        options = list(show_labels = input$show_label))
+        options = list(
+          show_labels = input$show_label,
+          default_color = input$custom_col))
   })
 
   output$csv_contents <- renderTable({
@@ -855,7 +887,22 @@ server <- function(input, output) {
     content = function(file) {
       ggsave(file, width = 10, height = 10)
     }
+
   )
+
+  observeEvent(input$whole_page, {
+    if (input$whole_page == "D3") {
+      hide("layout_choice")
+      hide("show_arrow")
+      hide("show_curve")
+      hide("show_legend")
+    } else {
+      show("layout_choice")
+      show("show_arrow")
+      show("show_curve")
+      show("show_legend")
+    }
+  })
 
 
 }

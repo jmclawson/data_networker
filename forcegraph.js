@@ -2,10 +2,15 @@
 
 // Based on: https://bl.ocks.org/mbostock/4063570
 
-var colorScale = d3.scaleOrdinal(d3.schemeCategory20);
 var radius = 5;
 
 r2d3.onRender(function(graph, svg, width, height, options) {
+  var colorScale = d3.scaleOrdinal(
+  options.default_color
+    ? [options.default_color].concat(d3.schemeCategory20)
+    : d3.schemeCategory20
+);
+
   var simulation = svg._sim || (svg._sim = d3.forceSimulation()
     .force("link", d3.forceLink().id(function(d){ return d.id; }).distance(40))
     .force("charge", d3.forceManyBody().strength(-80))
