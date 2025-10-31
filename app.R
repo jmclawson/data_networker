@@ -10,46 +10,70 @@ source("R/helpers.R")
 source("R/reactives.R")
 
 ##### UI #####
-ui <- page_sidebar(
-  # title = "data networker",
+ui <- page_navbar(
+  title = "data networker",
+  id = "whole_page",
   theme = bs_theme(
     "navbar-bg" = "#e8e8e8",
+    "sidebar-bg" = "#FFFFFF",
     primary = "#6c75ad",
     version = 5,
-    bootswatch = "bootstrap",
+    bootswatch = "lux",
     ),
   tags$head(tags$style(
     HTML(
-          "
-            .bslib-value-box {
-              margin-bottom: 4px !important;
-            }
+    "
+    .bslib-value-box {
+      margin-bottom: 4px !important;
+    }
+    .bslib-sidebar-layout>.sidebar {
+    background-color: white !important;
+    }
+    .navbar {
+      padding-top: 10px !important;
+      padding-bottom: 10px !important;
+    }
+
+      .bslib-sidebar-layout[data-collapsible-mobile='true']:not(.sidebar-right)>.collapse-toggle {
+      width: 100px;
+      }
+          .bslib-sidebar-layout > .collapse-toggle::after {
+      display: inline-block;
+      font-size: 0.95rem;
+      line-height: 1;
+      margin-left: .4rem;
+      vertical-align: middle;
+    }
+
+    .bslib-sidebar-layout > .collapse-toggle::after {
+      content: 'Options';
+    }
           "
     )
   )),
-  # tags$head(tags$style(
-  #   HTML(
-  #     "
-  #       .bslib-full-screen-enter {
-  #         bottom: var(--bslib-full-screen-enter-bottom);
-  #       }
-  #     "
-  #   )
-  # )),
-  sidebar = accordion(
-    multiple = FALSE,
+  sidebar = sidebar(
+    open = list(desktop = "always", mobile = "closed"),
+  accordion(
+    title = "what?",
+    id = "main_sidebar",
+    multiple = TRUE,
     accordion_panel(
       "Load Data",
       icon = bsicons::bs_icon("cloud-arrow-up"),
       shiny::radioButtons(
         "load_data","Source:",
-        choices = c(
+        choiceValues = c(
           "Samuel Pepys",
           "Star Wars",
           "Les Miserables",
-          "import CSV...")),
+          "import CSV"),
+        choiceNames = list(
+          "Samuel Pepys",
+          em("Star Wars"),
+          em("Les Misérables"),
+          "import CSV:")),
       conditionalPanel(
-        condition = "input.load_data == 'import CSV...'",
+        condition = "input.load_data == 'import CSV'",
         fileInput("file1", "", accept = ".csv"))
         ),
     accordion_panel(
@@ -110,7 +134,7 @@ ui <- page_sidebar(
       selectInput("target", "Target column", choices = c("target"))),
     accordion_panel(
       "Measure",
-      icon = bsicons::bs_icon("node-plus"),#rocket-takeoff node-plus magic layout-wtf columns-gap hypnotize clipboard2-plus bezier bezier2
+      icon = bsicons::bs_icon("node-plus"),
       checkboxInput("do_sna",
                     label = "Add network measurements.",
                     value = FALSE
@@ -141,7 +165,7 @@ ui <- page_sidebar(
       downloadLink("download_pdf", "Plot as PDF")),
     accordion_panel(
       "Customize Plot",
-      icon = bsicons::bs_icon("palette"),#diagram-3
+      icon = bsicons::bs_icon("palette"),
       selectInput("layout_choice",
                   "Network layout",
                   choices = c(
@@ -197,9 +221,10 @@ ui <- page_sidebar(
           ),
           conditionalPanel(
             condition = "input.color_branch == 'from column'",
-            selectInput("color_col",
-                        "Color points by column",
-                        choices = c(""))
+            selectInput(
+              "color_col",
+              "Color points by column",
+              choices = c(""))
           )
         ),
         p()
@@ -228,10 +253,11 @@ ui <- page_sidebar(
       ),
       p(a(href = "https://ggplot2.tidyverse.org", "ggplot2"), "visualization uses", a(href = "https://briatte.github.io/ggnetwork/", "ggnetwork"), "to calculate geometries for nodes and edges. Network layouts listed here are from", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), ".")
     )
-    ),
-  tabsetPanel(
-    tabPanel(
-      title = "Explore tables",
+    )),
+    nav_spacer(),
+    nav_panel(
+      title = "Tables",
+      icon = icon("table"),
       card(id = "original",
            card_header("original CSV data"),
            max_height = 300,
@@ -244,7 +270,6 @@ ui <- page_sidebar(
             max_height = 380,
             full_screen = TRUE,
             tabsetPanel(
-              # type = "pills",
               tabPanel(
                 title = "Adjusted data",
                 tableOutput("contents")),
@@ -261,7 +286,7 @@ ui <- page_sidebar(
                 max_height = (380/3)-2,
                 fill = TRUE,
                 value = textOutput("num_nodes"),
-                showcase = bsicons::bs_icon("diagram-3", size = "0.8em"),#uiOutput("icon"),
+                showcase = bsicons::bs_icon("diagram-3", size = "0.8em"),
                 showcase_layout = "top right",
                 theme = "primary text-white"
               )
@@ -292,20 +317,23 @@ ui <- page_sidebar(
         )
       )
       ),
-    tabPanel(title = "Visualize with ggplot2",
-             plotOutput("ggv",
+    nav_panel(
+      title = "ggplot2",
+      value = "ggplot2",
+      icon = icon("circle-nodes"),
+      plotOutput("ggv",
                         height = "90vh")),
-    tabPanel(
-      title = "Visualize with D3",
+    nav_panel(
+      title = "D3",
+      value = "D3",
+      icon = icon("square-js"),
       d3Output("d3",
                height = "90vh"),
       full_screen = TRUE),
-    tabPanel(
+    nav_panel(
       title = "Notes",
+      icon = icon("circle-info"),
       layout_columns(
-        # uiOutput("num_components"),
-        # uiOutput("num_nodes"),
-        # uiOutput("num_edges"),
         uiOutput("num_connectedness")
       ),
       layout_columns(
@@ -321,8 +349,8 @@ ui <- page_sidebar(
         card_header("shinyapps.io"),
         p("This page is hosted on a free account with limitations on time and processing power, so don't be alarmed if it gets slow. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
         p("A note on privacy: I can't see what you're uploading, but I do have access to logs that show when there's a problem with my code (which is written in R using Shiny, with JavaScript for the D3 visualization). Behind the scenes, things are supposed to be held only temporarily in your current session, but I can't guarantee that the file isn't cached by the server in one way or another. In other words, if it's sensitive data, you might not want to upload it.")))
-      )
-  )
+      ),
+  nav_spacer()
 )
 
 ##### Server #####
@@ -414,9 +442,9 @@ server <- function(input, output) {
           ""
         })
 
-    updateSelectInput(
-      inputId = "color_col",
-      choices = c("", colnames(the_result())))
+    # updateSelectInput(
+    #   inputId = "color_col",
+    #   choices = c("", colnames(the_result())))
 
     updateSelectInput(
       inputId = "label_col",
@@ -426,7 +454,12 @@ server <- function(input, output) {
 
     updateSelectInput(
       inputId = "size_col",
-      choices = c("", colnames(the_result())))
+      choices = c("", colnames(the_result())),
+      selected = ifelse(
+        input$load_data == "Star Wars",
+        "degree",
+        "")
+      )
 
     updateSelectInput(
       inputId = "weight_col",
@@ -465,7 +498,14 @@ server <- function(input, output) {
   observeEvent(input$show_color,{
     updateSelectInput(
       inputId = "color_col",
-      selected = if(input$show_color == FALSE){""})},
+      choices = c("", colnames(the_result())),
+      selected = case_when(
+        input$show_color == FALSE ~ "",
+        input$load_data == "Les Miserables" ~ "group",
+        input$load_data == "Star Wars" ~ "colour",
+        .default = ""
+        )
+      )},
     ignoreInit = TRUE)
 
   observeEvent(input$show_weight,{
@@ -546,10 +586,10 @@ server <- function(input, output) {
       inputId = "split_col",
       selected = "")
 
-    updateSelectInput(
-      inputId = "size_col",
-      selected = "",
-      choices = c("", colnames(the_result())))
+    # updateSelectInput(
+    #   inputId = "size_col",
+    #   selected = "",
+    #   choices = c("", colnames(the_result())))
 
     updateCheckboxInput(inputId = "do_separate", value = FALSE)
 
@@ -559,7 +599,74 @@ server <- function(input, output) {
 
     updateCheckboxInput(inputId = "do_sna", value = FALSE)
 
-    updateCheckboxInput(inputId = "show_color", value = FALSE)
+    if (input$load_data == "Star Wars") {
+      bslib::accordion_panel_open(
+        id = "main_sidebar",
+        value = "Customize Plot"
+      )
+      bslib::accordion_panel_close(
+        id = "main_sidebar",
+        value = "Measure"
+      )
+      nav_select(
+        id = "whole_page",
+        selected = "D3"
+      )
+      updateCheckboxInput(
+        inputId = "show_color",
+        value = TRUE)
+      updateRadioButtons(
+        inputId = "color_branch",
+        selected = "from column")
+      updateSelectInput(
+        inputId = "color_col",
+        selected = "colour")
+      updateCheckboxInput(
+        inputId = "show_label",
+        label = "Label",
+        value = TRUE
+      )
+      # updateSelectInput(
+      #   inputId = "size_col",
+      #   selected = "degree",
+      #   choices = c("", colnames(the_result())))
+    } else if (input$load_data == "Les Miserables") {
+      bslib::accordion_panel_open(
+        id = "main_sidebar",
+        value = "Measure"
+      )
+      bslib::accordion_panel_close(
+        id = "main_sidebar",
+        value = "Customize Plot"
+      )
+      nav_select(
+        id = "whole_page",
+        selected = "ggplot2"
+      )
+      updateCheckboxInput(
+        inputId = "show_color",
+        value = TRUE)
+      # updateRadioButtons(
+      #   inputId = "color_branch",
+      #   selected = "from column")
+      updateSelectInput(
+        inputId = "color_col",
+        selected = "group")
+      updateCheckboxInput(
+        inputId = "show_label",
+        label = "Label",
+        value = FALSE
+      )
+    } else {
+      updateCheckboxInput(inputId = "show_color", value = FALSE)
+    }
+
+    if (input$load_data == "Star Wars") {
+      updateSelectInput(
+        inputId = "size_col",
+        selected = "degree",
+        choices = c("", colnames(the_result())))
+    }
 
     updateCheckboxInput(inputId = "show_weight", value = FALSE)
 
@@ -659,7 +766,10 @@ server <- function(input, output) {
       need(input$target %in% colnames(the_middle()), "Please choose a valid `target` column.")
     )
     the_result() |>
-      df2d3_json(color = input$color_col, degree = input$size_col, weight = input$weight_col) |>
+      df2d3_json(
+        color = input$color_col,
+        degree = input$size_col,
+        weight = input$weight_col) |>
       r2d3::r2d3(
         d3_version = 4,
         script = "forcegraph.js",
