@@ -168,13 +168,6 @@ ui <- page_navbar(
       )
     ),
     accordion_panel(
-      "Export",
-      icon = bsicons::bs_icon("cloud-download"),
-      downloadLink("download_csv", "Gephi edges file"),
-      downloadLink("download_json", "JSON file for D3"),
-      downloadLink("download_png", "Plot as PNG"),
-      downloadLink("download_pdf", "Plot as PDF")),
-    accordion_panel(
       "Customize Plot",
       icon = bsicons::bs_icon("palette"),
       selectInput("layout_choice",
@@ -263,7 +256,14 @@ ui <- page_navbar(
                     value = TRUE
       ),
       card(p(a(href = "https://ggplot2.tidyverse.org", "ggplot2"), "visualization uses", a(href = "https://briatte.github.io/ggnetwork/", "ggnetwork"), "to calculate geometries for nodes and edges. Network layouts listed here are from", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), ".")
-    ))
+    )),
+    accordion_panel(
+      "Export",
+      icon = bsicons::bs_icon("cloud-download"),
+      downloadLink("download_csv", "Gephi edges file"),
+      downloadLink("download_json", "JSON file for D3"),
+      downloadLink("download_png", "Plot as PNG"),
+      downloadLink("download_pdf", "Plot as PDF"))
     )),
     nav_spacer(),
     nav_panel(
