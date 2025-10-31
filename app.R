@@ -346,9 +346,6 @@ ui <- page_navbar(
       title = "Notes",
       icon = icon("circle-info"),
       layout_columns(
-        uiOutput("num_connectedness")
-      ),
-      layout_columns(
         card(
           card_header("Methods"),
           p("Pepys data from", em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")), "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a", a(href="https://mathhumanists.org", "Mathematical Humanists"), "workshop led by Jessica Otis and Ashley Sanders."),
