@@ -147,7 +147,15 @@ prepare_plot_df <- function(df, input) {
 
   if (input$size_col != "") {
     the_data <- the_data |>
-      mutate(size_class = get(input$size_col))
+      mutate(
+        size_class = get(input$size_col),
+        text_size = 4 + 3 * as.integer(cut_interval(get(input$size_col), n = 5))
+        )
+  } else {
+    the_data <- the_data |>
+      mutate(
+        text_size = 4
+      )
   }
 
   if (input$weight_col != "" &&
@@ -170,6 +178,8 @@ make_plot <- function(df, input) {
     df <- df |>
       rename(the_weight = count)
   }
+
+  # df$text_size[is.na(df$text_size)] <- 4
 
   my_plot <- df |>
     ggplot(aes(
@@ -270,11 +280,17 @@ make_plot <- function(df, input) {
   if (!input$label_col %in% c("", "source")) {
     my_plot <- my_plot +
       geom_text(
+        data = df |>
+          filter(!is.na(size_class)),
         aes(label = the_label))
   } else if (input$label_col == "source") {
     my_plot <- my_plot +
       geom_text(
-        aes(label = vertex.names))
+        data = df |>
+          filter(!is.na(size_class)),
+        aes(
+          label = vertex.names,
+          size = text_size))
   }
 
   my_plot <- my_plot +

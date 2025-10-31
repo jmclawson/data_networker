@@ -74,17 +74,17 @@ ui <- page_navbar(
       shiny::radioButtons(
         "load_data","Source:",
         choiceValues = c(
-          "Samuel Pepys",
-          "Star Wars",
-          "Les Miserables",
-          "import CSV"),
+          "pepys",
+          "starwars",
+          "miserables",
+          "csv"),
         choiceNames = list(
           "Samuel Pepys",
           em("Star Wars"),
           em("Les Misérables"),
           "import CSV:")),
       conditionalPanel(
-        condition = "input.load_data == 'import CSV'",
+        condition = "input.load_data == 'csv'",
         fileInput("file1", "", accept = ".csv"))
         ),
     accordion_panel(
@@ -366,11 +366,11 @@ ui <- page_navbar(
 
 server <- function(input, output) {
   the_csv <- reactive({
-    if (input$load_data == "Samuel Pepys") {
+    if (input$load_data == "pepys") {
       readr::read_csv("data/pepys_reciprocity-edges_extra.csv")
-    } else if (input$load_data == "Star Wars") {
+    } else if (input$load_data == "starwars") {
       readr::read_csv("data/interactions.csv")
-    } else if (input$load_data == "Les Miserables") {
+    } else if (input$load_data == "miserables") {
       readr::read_csv("data/miserables.csv")
     } else if (is.null(input$file1)) {
       readr::read_csv("data/pepys_reciprocity-edges_extra.csv") |>
@@ -465,7 +465,7 @@ server <- function(input, output) {
       inputId = "size_col",
       choices = c("", colnames(the_result())),
       selected = ifelse(
-        input$load_data == "Star Wars",
+        input$load_data == "starwars",
         "degree",
         "")
       )
@@ -510,8 +510,8 @@ server <- function(input, output) {
       choices = c("", colnames(the_result())),
       selected = case_when(
         input$show_color == FALSE ~ "",
-        input$load_data == "Les Miserables" ~ "group",
-        input$load_data == "Star Wars" ~ "colour",
+        input$load_data == "miserables" ~ "group",
+        input$load_data == "starwars" ~ "colour",
         .default = ""
         )
       )},
@@ -608,7 +608,7 @@ server <- function(input, output) {
 
     updateCheckboxInput(inputId = "do_sna", value = FALSE)
 
-    if (input$load_data == "Star Wars") {
+    if (input$load_data == "starwars") {
       bslib::accordion_panel_open(
         id = "main_sidebar",
         value = "Customize Plot"
@@ -639,7 +639,7 @@ server <- function(input, output) {
       #   inputId = "size_col",
       #   selected = "degree",
       #   choices = c("", colnames(the_result())))
-    } else if (input$load_data == "Les Miserables") {
+    } else if (input$load_data == "miserables") {
       bslib::accordion_panel_open(
         id = "main_sidebar",
         value = "Measure"
@@ -678,7 +678,7 @@ server <- function(input, output) {
       updateCheckboxInput(inputId = "show_color", value = FALSE)
     }
 
-    if (input$load_data == "Star Wars") {
+    if (input$load_data == "starwars") {
       updateSelectInput(
         inputId = "size_col",
         selected = "degree",
@@ -687,7 +687,7 @@ server <- function(input, output) {
 
     updateCheckboxInput(inputId = "show_weight", value = FALSE)
 
-    if (input$load_data == "Les Miserables") {
+    if (input$load_data == "miserables") {
       updateSelectInput(
         inputId = "add_measures",
         selected = "degree"
@@ -827,7 +827,7 @@ server <- function(input, output) {
   output$download_csv <- downloadHandler(
     filename = function() {
       if (is.null(input$file1)) {
-        "pepys-reciprocity.csv"
+        input$load_data
       } else {
         input$file1
       } |>
@@ -843,12 +843,12 @@ server <- function(input, output) {
   output$download_json <- downloadHandler(
     filename = function() {
       if (is.null(input$file1)) {
-        "pepys-reciprocity.json"
+        input$load_data
       } else {
-        input$file1 |>
-          str_remove_all("[.].*$") |>
-          paste0(".json")
-      }
+        input$file1
+      } |>
+        str_remove_all("[.].*$") |>
+        paste0(".json")
     },
     content = function(file) {
       the_result() |>
@@ -860,12 +860,13 @@ server <- function(input, output) {
   output$download_png <- downloadHandler(
     filename = function() {
       if (is.null(input$file1)) {
-        "pepys-reciprocity.png"
+        input$load_data |>
+          paste0(".png")
       } else {
-        input$file1
-      } |>
-        str_remove_all("[.].*$") |>
-        paste0(".png")
+        input$file1 |>
+          str_remove_all("[.].*$") |>
+          paste0(".png")
+      }
     },
     content = function(file) {
       ggsave(file, width = 7, height = 7)
@@ -874,12 +875,13 @@ server <- function(input, output) {
   output$download_pdf <- downloadHandler(
     filename = function() {
       if (is.null(input$file1)) {
-        "pepys-reciprocity.pdf"
+        input$load_data |>
+          paste0(".pdf")
       } else {
-        input$file1
-      } |>
-        str_remove_all("[.].*$") |>
-        paste0(".pdf")
+        input$file1 |>
+          str_remove_all("[.].*$") |>
+          paste0(".pdf")
+      }
     },
     content = function(file) {
       ggsave(file, width = 10, height = 10)
