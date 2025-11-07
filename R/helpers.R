@@ -1,3 +1,94 @@
+##### Downloading #####
+
+get_online_file <- function(url, localname = NULL) {
+  url_pepys <- "https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity-edges_extra.csv"
+  url_starwars <- "https://raw.githubusercontent.com/evelinag/StarWars-social-network/refs/heads/master/networks/starwars-full-interactions.json"
+  url_miserables <- "https://raw.githubusercontent.com/mbostock/vega/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json"
+
+  if (url == url_pepys) {
+    localname <- "data/pepys_reciprocity-edges_extra.csv"
+  } else if (url == url_starwars) {
+    localname <- "data/interactions.csv"
+  } else if (url == url_miserables) {
+    localname <- "data/miserables.csv"
+  }
+
+  if(is.null(localname)){
+    localname <- url |>
+      stringr::str_extract("[a-z A-Z 0-9 \\- _]+[.]{1,1}+[a-zA-Z]{1,4}$")
+  }
+
+  if (!file.exists(localname)) {
+    url |>
+      download.file(localname)
+  }
+  return(localname)
+}
+
+##### Converting JSON #####
+
+network_json2df <- function(file) {
+  network <- jsonlite::fromJSON(file)
+
+  n_nodes <- nrow(network$nodes) - 1
+
+  network$nodes$value <- network$nodes$value %||% 1
+  network$nodes$group <- network$nodes$group %||% network$nodes$color %||% network$nodes$colour %||% 1
+  network$links$value <- network$links$value %||% 1
+
+  network_df <- network$nodes |>
+    mutate(id = 0:n_nodes, source_id = id) |>
+    relocate(id) |>
+    rename(
+      degree = value,
+      source = name
+    ) |>
+    left_join(
+      network$links |>
+        rename(
+          target_id = target,
+          weight = value
+        ),
+      by = join_by(source_id == source)
+    ) |>
+    left_join(
+      network$nodes |>
+        mutate(target_id = 0:n_nodes) |>
+        rename(target = name) |>
+        select(target_id, target)
+    ) |>
+    select(-ends_with("id"))
+
+  if (var(network_df$degree) == 0) {
+    network_df <- select(network_df, -degree)
+  }
+
+  if (var(network_df$weight, na.rm = TRUE) == 0) {
+    network_df <- select(network_df, -weight)
+  }
+
+  network_df
+}
+
+##### Load CSV or JSON #####
+
+load_network_file <- function(filename) {
+  ext <- tools::file_ext(filename)
+  validate(need(tolower(ext) %in% c("csv", "json"), "Please choose a CSV or JSON file."))
+
+  if (tolower(ext) == "csv") {
+    results <- readr::read_csv(filename)
+  } else if (tolower(ext) == "json") {
+    results <- network_json2df(filename)
+  }
+
+  if (filename == "data/pepys_reciprocity-edges_extra.csv") {
+    results <- results |>
+      select(-date)
+  }
+
+  results
+}
 
 ##### D3 and JSON #####
 

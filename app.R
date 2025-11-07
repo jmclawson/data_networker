@@ -7,19 +7,21 @@ library(sna)
 library(ggnetwork)
 library(shinyjs)
 library(colourpicker)
+library(shadowtext)
 source("R/helpers.R")
 source("R/reactives.R")
+source("ui_contents.R")
 
 ##### UI #####
-ui <- page_navbar(
+ui <- function(request) { page_navbar(
   title = "data networker",
-  id = "whole_page",
+  id = "p",
   theme = bs_theme(
     "navbar-bg" = "#e8e8e8",
     "sidebar-bg" = "#FFFFFF",
     primary = "#6c75ad",
     version = 5,
-    bootswatch = "lux",
+    # bootswatch = "lux",
     ),
   header = tags$head(tags$style(
     HTML(
@@ -45,6 +47,38 @@ ui <- page_navbar(
       max-height: 50px;
     }
 
+    .export-links {
+      width: 1.4em;
+      display: inline-block;
+    }
+
+    label:empty {
+      display: none;
+    }
+
+    .t-bottom {
+      width: 100%;
+      margin: 0 auto;
+    }
+    .t-entries {
+      margin: 0.2em 20px;
+      display: inline-block;
+      vertical-align: middle;
+      float: left;
+    }
+    .t-info {
+      margin: -1.2em 20px 0 20px;
+      display: inline-block;
+      vertical-align: top;
+      float: center;
+    }
+    .t-page {
+      margin: -1.2em 0 0 50px;
+      display: inline-block;
+      vertical-align: top;
+      float: right;
+    }
+
       .bslib-sidebar-layout[data-collapsible-mobile='true']:not(.sidebar-right)>.collapse-toggle {
       width: 100px;
       }
@@ -54,338 +88,474 @@ ui <- page_navbar(
       line-height: 1;
       margin-left: .4rem;
       vertical-align: middle;
-    }
+          }
 
+     @media (max-width: 575px) {
     .bslib-sidebar-layout > .collapse-toggle::after {
       content: 'Options';
     }
+     }
+
+      @media (min-width: 576px) {
+        .bslib-sidebar-layout {
+          position: relative;
+          --sidebar-width: 250px;
+        }
+
+        .bslib-sidebar-layout .accordion {
+          margin-top: -30px;
+        }
+
+        .bslib-sidebar-layout > .collapse-toggle {
+          position: absolute;
+          top: .5rem;
+          z-index: 1030;
+          width: 50px !important;
+          background: var(--bs-body-bg);
+          border: 1px solid var(--bs-border-color);
+          border-radius: 999px;
+          padding: .125rem .35rem;
+          box-shadow: 0 2px 6px rgba(0,0,0,.08);
+        }
+
+        .bslib-sidebar-layout > .collapse-toggle[aria-expanded='true'] {
+          left: calc(var(--sidebar-width) - 25px) !important;
+  }
+
+      }
           "
     )
   )),
-  sidebar = sidebar(
-    open = list(desktop = "always", mobile = "closed"),
-  accordion(
-    title = "what?",
-    id = "main_sidebar",
-    multiple = TRUE,
-    accordion_panel(
-      "Load Data",
-      icon = bsicons::bs_icon("cloud-arrow-up"),
-      shiny::radioButtons(
-        "load_data","Source:",
-        choiceValues = c(
-          "pepys",
-          "starwars",
-          "miserables",
-          "csv"),
-        choiceNames = list(
-          "Samuel Pepys",
-          em("Star Wars"),
-          em("Les Misérables"),
-          "import CSV:")),
-      conditionalPanel(
-        condition = "input.load_data == 'csv'",
-        fileInput("file1", "", accept = ".csv"))
-        ),
-    accordion_panel(
-      "Adjust",
-      icon = bsicons::bs_icon("dpad"),
-      checkboxInput("do_separate",
-                    label = span(bsicons::bs_icon("arrows-expand"), "Separate one column's values into multiple rows."),
-                    value = FALSE
-      ),
-      conditionalPanel(
-        condition = "input.do_separate",
-        wellPanel(
-          selectInput("separate_col",
-                      "Column",
-                      choices = c("")),
-          textInput("separate", "Separate at", placeholder = "(e.g., comma, underscore, space)")),
-        p()
-      ),
-      checkboxInput("do_split",
-                    label = span(bsicons::bs_icon("arrows-expand-vertical"), "Split one column into two."),
-                    value = FALSE
-      ),
-      conditionalPanel(
-        condition = "input.do_split",
-        wellPanel(
-          selectInput("split_col",
-                      "Column",
-                      choices = c("")),
-          textInput("split", "Split at", placeholder = "(e.g., comma, underscore, space)"),
-          textInput("split_col1", "New column name 1", value = "col1"),
-          textInput("split_col2", "New column name 2", value = "col2")
-        ),
-        p()
-      ),
-      checkboxInput("do_combo",
-                    label = span(bsicons::bs_icon("arrows-collapse-vertical"), "Combine two columns into one."),
-                    value = FALSE
-      ),
-      conditionalPanel(
-        condition = "input.do_combo",
-        wellPanel(
-          selectInput("combine_col1",
-                      "Column 1",
-                      choices = c("")),
-          selectInput("combine_col2",
-                      "Column 2",
-                      choices = c("")),
-          textInput("combine", "Combine at",
-                    placeholder = "(e.g., comma, underscore, space)"),
-          textInput("combine_name", "Name", value = "combo")
-        )
-        )
-      ),
-    accordion_panel(
-      "Choose", id = "enforce_columns",
-      icon = bsicons::bs_icon("list-check"),
-      selectInput("source", "Source column", choices = c("source")),
-      selectInput("target", "Target column", choices = c("target"))),
-    accordion_panel(
-      "Measure",
-      icon = bsicons::bs_icon("node-plus"),
-      checkboxInput("do_sna",
-                    label = "Add network measurements.",
-                    value = FALSE
-      ),
-      conditionalPanel(
-        condition = "input.do_sna",
-        wellPanel(
-          radioButtons("choose_directedness",
-                       "Graph mode",
-                       choices = c("directed",
-                                   "undirected")),
-          selectInput("add_measures",
-                      label = "Choose measurements",
-                      multiple = TRUE,
-                      choices = c("degree", "betweenness", "closeness", "prestige", "stress_centrality")
-          ),
-          p("Degree reports total (in- and out-degree) values. All measurements use the",
-            a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "package.")
-        )
-      )
-    ),
-    accordion_panel(
-      "Customize Plot",
-      icon = bsicons::bs_icon("palette"),
-      selectInput("layout_choice",
-                  "Network layout",
-                  choices = c(
-                    "circle", "eigen", "fruchtermanreingold",
-                    "hall", "kamadakawai", "mds",
-                    "princoord", "random", "spring",
-                    "target"),
-                  selected = "fruchtermanreingold"),
-      checkboxInput("show_arrow",
-                    label = "Directed",
-                    value = FALSE
-      ),
-      checkboxInput("show_weight",
-                    label = "Weighted",
-                    value = FALSE
-      ),
-      conditionalPanel(
-        condition = "input.show_weight",
-        wellPanel(
-          radioButtons("weight_from",
-                       "from",
-                       choices = c("count", "column"),
-                       selected = "count"),
-          conditionalPanel(
-            condition = "input.weight_from == 'column'",
-            selectInput("weight_col",
-                        "column:",
-                        choices = c(""))
-          )
-        ),
-        p()
-      ),
-      checkboxInput("show_color",
-                    label = "Color",
-                    value = FALSE
-      ),
-      conditionalPanel(
-        condition = "input.show_color",
-        wellPanel(
-          radioButtons(
-            inputId = "color_branch",
-            label = "Choose color source",
-            selected = "custom",
-            choices = c("custom", "from column")),
-          conditionalPanel(
-            condition = "input.color_branch == 'custom'",
-            colourpicker::colourInput(
-              "custom_col",
-              label = NULL,
-              value = "#6c75adaa",
-              allowTransparent = TRUE,
-              closeOnClick = TRUE)
-          ),
-          conditionalPanel(
-            condition = "input.color_branch == 'from column'",
-            selectInput(
-              "color_col",
-              "Color points by column",
-              choices = c(""))
-          )
-        ),
-        p()
-      ),
-      checkboxInput("show_label",
-                    label = "Label",
-                    value = FALSE
-      ),
-      conditionalPanel(
-        condition = "input.show_label",
-        wellPanel(
-          selectInput("label_col",
-                      "Label by values in column",
-                      choices = c(""))
-        ),
-        p()
-      ),
-      selectInput("size_col",
-                  "Point size by column",
-                  choices = c("")),
-      numericInput("show_curve", "Curviness",
-                   value = 0.1, step = 0.1),
-      checkboxInput("show_legend",
-                    label = "Show legend",
-                    value = TRUE
-      ),
-      card(p(a(href = "https://ggplot2.tidyverse.org", "ggplot2"), "visualization uses", a(href = "https://briatte.github.io/ggnetwork/", "ggnetwork"), "to calculate geometries for nodes and edges. Network layouts listed here are from", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), ".")
-    )),
-    accordion_panel(
-      "Export",
-      icon = bsicons::bs_icon("cloud-download"),
-      downloadLink("download_csv", "Gephi edges file"),
-      downloadLink("download_json", "JSON file for D3"),
-      downloadLink("download_png", "Plot as PNG"),
-      downloadLink("download_pdf", "Plot as PDF"))
-    )),
-    nav_spacer(),
-    nav_panel(
-      title = "Tables",
-      icon = icon("table"),
-      shinyjs::useShinyjs(),
-      card(id = "original",
-           card_header("original CSV data"),
-           max_height = 300,
-           full_screen = TRUE,
-           tableOutput("csv_contents")),
-      fixedRow(
-        layout_columns(
-          col_widths = c(9,3),
-          card(
-            max_height = 380,
-            full_screen = TRUE,
-            tabsetPanel(
-              tabPanel(
-                title = "Adjusted data",
-                tableOutput("contents")),
-              tabPanel(
-                title = "Geometry for ggplot2",
-                tableOutput("ggt"))
-            )
-          ),
-          column(
-            12,
-            fluidRow(
-              value_box(
-                title = "Nodes",
-                max_height = (380/3)-2,
-                fill = TRUE,
-                value = textOutput("num_nodes"),
-                showcase = bsicons::bs_icon("diagram-3", size = "0.8em"),
-                showcase_layout = "top right",
-                theme = "primary text-white"
-              )
-            ),
-            fluidRow(
-              value_box(
-                title = "Edges",
-                max_height = (380/3)-3,
-                fill = TRUE,
-                value = textOutput("num_edges"),
-                showcase = bsicons::bs_icon("bezier2", size = "0.8em"),
-                showcase_layout = "top right",
-                theme = "secondary"
-              )
-            ),
-            fluidRow(
-              value_box(
-                title = span("Connected", br(), "Components"),
-                max_height = (380/3)-3,
-                fill = TRUE,
-                value = textOutput("num_components"),
-                showcase = bsicons::bs_icon("layout-wtf", size = "0.6em"),
-                showcase_layout = "top right",
-                theme = "text-blue"
-              )
-            )
-          )
-        )
-      )
-      ),
-    nav_panel(
-      title = "ggplot2",
-      value = "ggplot2",
-      icon = icon("circle-nodes"),
-      plotOutput("ggv",
-                        height = "90vh")),
-    nav_panel(
-      title = "D3",
-      value = "D3",
-      icon = icon("square-js"),
-      d3Output("d3",
-               height = "90vh"),
-      full_screen = TRUE),
-    nav_panel(
-      title = "Notes",
-      icon = icon("circle-info"),
-      layout_columns(
-        card(
-          card_header("Methods"),
-          p("Pepys data from", em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")), "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a", a(href="https://mathhumanists.org", "Mathematical Humanists"), "workshop led by Jessica Otis and Ashley Sanders."),
-          p(em("Star Wars"), "data is from Evelina Gabasova, with methodology laid out in a", a(href= "https://evelinag.com/blog/2015/12-15-star-wars-social-network/index.html#how", "blog post"), "and data recorded in a", a(href = "https://github.com/evelinag/StarWars-social-network/blob/master/networks/starwars-full-interactions.json", "JSON file on GitHub.")),
-          p(em("Les Miserables"), "data is originally from Donald Knuth, prepared in this version from the", a(href = "https://raw.githubusercontent.com/mbostock/vega/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json", "JSON file"), "made available by", a(href = "https://bost.ocks.org/mike/miserables/", "Mike Bostock.")),
-          # p("The network calculations here don't normalize values between 0 and 1. Additionally, I haven't compared results to Gephi, so you should probably be consistent in the tools you use for calculating these values. (That said,", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "is a trusted library with more than 2 million downloads from CRAN, so it's probably dependable even if it calculates things differently than Gephi.)"),
-          # p("D3 nodes might seem to go missing when data changes. They're still there! Find them tucked away trying to hide in the upper-left corner of the page. They'll shuffle back into place when you click them. Alternatively, try toggling the sidebar.")
-          ),
-      card(
-        card_header("shinyapps.io"),
-        p("This page is hosted on a free account with limitations on time and processing power, so don't be alarmed if it gets slow. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
-        p("A note on privacy: I can't see what you're uploading, but I do have access to logs that show when there's a problem with my code (which is written in R using Shiny, with JavaScript for the D3 visualization). Behind the scenes, things are supposed to be held only temporarily in your current session, but I can't guarantee that the file isn't cached by the server in one way or another. In other words, if it's sensitive data, you might not want to upload it.")))
-      ),
+  sidebar = sidebar_contents,
+  nav_spacer(),
+  tables_contents,
+  ggplot2_contents,
+  d3_contents,
+  notes_contents,
   nav_spacer()
-)
+)}
+
+##### Bookmarking #####
+
+enableBookmarking("url")
 
 ##### Server #####
 
-server <- function(input, output) {
-  the_csv <- reactive({
-    if (input$load_data == "pepys") {
-      readr::read_csv("data/pepys_reciprocity-edges_extra.csv")
-    } else if (input$load_data == "starwars") {
-      readr::read_csv("data/interactions.csv")
-    } else if (input$load_data == "miserables") {
-      readr::read_csv("data/miserables.csv")
-    } else if (is.null(input$file1)) {
-      readr::read_csv("data/pepys_reciprocity-edges_extra.csv") |>
-        select(-date)
-    } else {
-      file <- input$file1
-      ext <- tools::file_ext(file$datapath)
+server <- function(input, output, session) {
+  values <- reactiveValues()
 
-      req(file)
-      validate(need(ext == "csv", "Please upload a csv file"))
+  ##### 1. independent params #####
+  observeEvent(session$clientData$url_search, {
+    query <- session$clientData$url_search |>
+      parseQueryString()
+    saveRDS(session, "session.rds")
+    saveRDS(reactiveValuesToList(session$clientData), "client_session.rds")
 
-      readr::read_csv(file$datapath)
+    # set URL with `u`
+    if (!is.null(query[['u']])) {
+      updateTextAreaInput(
+        session,
+        inputId = "u",
+        value = query[['u']])
+    }
+    # choose panel with `p`
+    if (!is.null(query[['p']])) {
+      nav_select(
+        id = "p",
+        selected = query[['p']],
+        session)
+    }
+    # toggle sidebar with `s`
+    if (!is.null(query[['s']])) {
+      toggle_sidebar(
+        id = "s",
+        open = query[['s']] == 1, # open with s=1
+        session)
+    }
+    # set accordion with `a`
+    if (!is.null(query[['a']]) && query[['a']] %in% c("Import", "Adjust", "Choose", "Measure", "Customize", "Export")) {
+      accordion_panel_close(
+        id = "a",
+        values = c(
+          "Import",
+          "Adjust",
+          "Choose",
+          "Measure",
+          "Customize",
+          "Export") |>
+          {\(x) x[!x %in% query[['a']]]}()
+      )
+      accordion_panel_open(
+        id = "a",
+        value = query[['a']]
+      )
+    }
+
+    # use color
+    # custom color from one column
+    if (!is.null(query[['color']])) {
+      updateCheckboxInput(
+        inputId = "color",
+        value = query[['color']]
+      )
+    }
+    if (!is.null(query[['color_branch']])) {
+      updateRadioButtons(
+        inputId = "color_branch",
+        selected = query[['color_branch']])
+    }
+    # custom (manual) color
+    if (!is.null(query[['color_cus']])) {
+      colourpicker::updateColourInput(
+        session,
+        inputId = "color_cus",
+        value = query[['color_cus']]
+      )
+    }
+    # show arrow
+    if (!is.null(query[['arrow']])) {
+      updateCheckboxInput(
+        inputId = "arrow",
+        value = as.numeric(query[['arrow']]) == 1
+      )
+    }
+    if (!is.null(query[['label']])) {
+      updateCheckboxInput(
+        inputId = "label",
+        value = as.numeric(query[['label']]) == 1
+      )
+    }
+    values$pend_ <- query
+  }, ignoreInit = FALSE, once = TRUE)
+
+  ##### 2. dependent params #####
+  observe({
+    req(the_middle())
+    req(any(!is.null(values$pend_$separate_col), !is.null(values$pend_$split_col), !is.null(values$pend_$combine_col1)))
+
+    query <- values$pend_
+
+    if (!is.null(query[['source']])) {
+    updateSelectInput(
+      inputId = "source",
+      choices = colnames(the_middle()),
+      selected = query[['source']])
+    }
+
+    if (!is.null(query[['target']])) {
+    updateSelectInput(
+      inputId = "target",
+      choices = colnames(the_middle()),
+      selected = query[['target']])
+    }
+
+    if (!is.null(query[['separate_col']])) {
+    updateSelectInput(
+      inputId = "separate_col",
+      choices = colnames(the_middle()),
+      selected = query[['separate_col']])
+    }
+
+    if (!is.null(query[['split_col']])) {
+    updateSelectInput(
+      inputId = "split_col",
+      choices = colnames(the_middle()),
+      selected = query[['split_col']])
+    }
+
+    if (!is.null(query[['combine_col1']])) {
+    updateSelectInput(
+      inputId = "combine_col1",
+      choices = colnames(the_middle()),
+      selected = query[['combine_col1']])
+    }
+
+    if (!is.null(query[['combine_col2']])) {
+    updateSelectInput(
+      inputId = "combine_col2",
+      choices = colnames(the_middle()),
+      selected = query[['combine_col2']])
+    }
+
+    if (!is.null(query[['combine_name']])) {
+      updateTextInput(
+        inputId = "combine_name",
+        value = query[['combine_name']])
     }
   })
 
+  ##### 3. dependent sna params #####
+  observe({
+    req(the_result())
+    req(values$pend_$do_sna)
+
+    query <- values$pend_
+
+    # measure network characteristics
+    if (!is.null(query[['do_sna']])) {
+      updateCheckboxInput(
+        inputId = "do_sna",
+        value = query[['do_sna']]
+      )
+    }
+    if (!is.null(query[['directed']])) {
+      updateRadioButtons(
+        inputId = "directed",
+        selected = query[['directed']]
+      )
+    }
+    if (!is.null(query[['sna_add']])) {
+      updateSelectInput(
+        inputId = "sna_add",
+        selected = query[['sna_add']]
+      )
+    }
+  })
+
+  ##### 4. dependent customization params #####
+  observe({
+    req(the_result())
+    req(any(
+      !is.null(values$pend_$weight_col),
+      !is.null(values$pend_$label_col),
+      !is.null(values$pend_$size_col),
+      !is.null(values$pend_$legend),
+      !is.null(values$pend_$color_col)))
+
+    query <- values$pend_
+
+    # weight edges
+    if (!is.null(query[['weighted']])) {
+      updateCheckboxInput(
+        inputId = "weighted",
+        value = query[['weighted']])
+    }
+    if (!is.null(query[['weight_col']])) {
+      print(the_result())
+      updateSelectInput(
+        inputId = "weight_col",
+        selected = query[['weight_col']],
+        choices = c("", the_result_numeric() |>
+                      colnames()))
+    }
+    # label charts
+    if (!is.null(query[['label_col']])) {
+      updateSelectInput(
+        inputId = "label_col",
+        selected = query[['label_col']],
+        choices = c("", colnames(the_result()) |>
+                      str_subset("target", negate = TRUE)))
+    }
+    # choose size column from existing
+    if (!is.null(query[['size_col']])) {
+      updateSelectInput(
+        inputId = "size_col",
+        selected = query[['size_col']],
+        choices = c("", the_result_numeric() |>
+                      colnames())
+      )
+    }
+    # color from one column
+    if (!is.null(query[['color_col']])) {
+      updateSelectInput(
+        inputId = "color_col",
+        selected = query[['color_col']],
+        choices = c("", colnames(the_result())))
+    }
+    # legend
+    if (!is.null(query[['legend']])) {
+      updateCheckboxInput(
+        inputId = "legend",
+        value = as.numeric(query[['legend']]) == 1
+      )
+    }
+  })
+
+  observe({
+    if (!is.null(values)) {
+      nullify_twins <- function(values, item, dependency = NULL) {
+        # hold on item until dependency is null
+        if (!is.null(dependency) && !is.null(values$pend_[[item]])) {
+          return()
+        }
+        if (is.logical(input[[item]])) {
+          if (!is.null(values$pend_[[item]]) && identical(as.integer(input[[item]]), as.integer(values$pend_[[item]]))) {
+            values$pend_[[item]] <- NULL
+            # print(paste("Nullifying", item))
+          }
+        } else if (!is.null(values$pend_[[item]]) && identical(input[[item]], values$pend_[[item]])) {
+          values$pend_[[item]] <- NULL
+          # print(paste("Nullifying", item))
+        }
+        values
+      }
+
+      values <- values |>
+        #layout params
+        nullify_twins("p") |>
+        nullify_twins("a") |>
+        nullify_twins("u") |>
+        # wrangling params
+        nullify_twins("source") |>
+        nullify_twins("target") |>
+        nullify_twins("separate_col") |>
+        nullify_twins("split_col") |>
+        nullify_twins("combine_col1") |>
+        nullify_twins("combine_col2") |>
+        nullify_twins("combine_name") |>
+        # sna params
+        nullify_twins("do_sna") |>
+        nullify_twins("directed") |>
+        nullify_twins("sna_add") |>
+      # customizing params
+        nullify_twins("arrow") |>
+        nullify_twins("weighted") |>
+        nullify_twins("weight_col") |>
+        nullify_twins("label_col", "sna_add") |>
+        nullify_twins("size_col", "sna_add") |>
+        nullify_twins("label") |>
+        nullify_twins("color") |>
+        nullify_twins("color_branch") |>
+        nullify_twins("color_col") |>
+        nullify_twins("legend")
+      print(length(values$pend_))
+    } else {
+      print(paste("unfinished:", names(values$pend_)))
+    }
+  })
+
+  ##### Notes tab #####
+  output$link_pepys <- renderUI({
+    base_url <- paste0(session$clientData$url_protocol, "//",
+                       session$clientData$url_hostname,
+                       if (session$clientData$url_port != "") paste0(":", session$clientData$url_port),
+                       session$clientData$url_pathname)
+    the_link <- paste0(base_url, "?a=Customize&p=ggplot2&u=https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity-edges_extra.csv&arrow=1&color=1&label=1&do_sna=1&legend=0&sna_add=degree&directed=directed&size_col=degree&weighted=1&color_col=gender&color_branch=from%20column&label_col=source")
+    HTML(paste0("<a href='", the_link, "'>Pepys reciprocity data</a>"))
+  })
+
+  output$link_star_wars <- renderUI({
+    base_url <- paste0(session$clientData$url_protocol, "//",
+                       session$clientData$url_hostname,
+                       if (session$clientData$url_port != "") paste0(":", session$clientData$url_port),
+                       session$clientData$url_pathname)
+    the_link <- paste0(base_url, "?a=Customize&p=D3&s=0&u=https://github.com/evelinag/StarWars-social-network/blob/master/networks/starwars-full-interactions.json&color=1&label=1&size_col=degree&weighted=1&color_col=group&weight_col=weight&color_branch=from%20column&label_col=source")
+    HTML(paste0("<a href='", the_link, "'><em>Star Wars</em> characters</a>"))
+  })
+
+  output$link_les_miserables <- renderUI({
+    base_url <- paste0(session$clientData$url_protocol, "//",
+                       session$clientData$url_hostname,
+                       if (session$clientData$url_port != "") paste0(":", session$clientData$url_port),
+                       session$clientData$url_pathname)
+    the_link <- paste0(base_url, "?a=Measure&p=ggplot2&u=https://github.com/mbostock/vega/blob/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json&color=1&label=1&do_sna=1&legend=0&directed=undirected&size_col=degree&color_col=group&color_branch=from%20column&label_col=source&sna_add=degree")
+    HTML(paste0("<a href='", the_link, "'><em>Les Misérables</em> characters</a>"))
+  })
+
+  ##### bookmarking #####
+  output$share_url <- renderUI({
+    # compare query params to default values
+    ## (I only care about non-default values, and I
+    ## only care about those named in defaults.)
+    params_compare <- function(input, defaults) {
+      params <- list()
+      for (setting in names(defaults)) {
+        if (!is.null(input[[setting]]) &&
+            !identical(input[[setting]], defaults[[setting]])) {
+          params[[setting]] <- input[[setting]] |>
+            as.character() |>
+            stringr::str_replace_all("^TRUE$", "1") |>
+            stringr::str_replace_all("^FALSE$", "0")
+        }
+      }
+      params
+    }
+
+    # nice bookmarks
+    build_bookmark_url <- function(input, defaults, session = getDefaultReactiveDomain()) {
+      params <- params_compare(input, defaults)
+      # print(paste("Params:", length(params)))
+      # print(paste("Defaults-1:", length(defaults)))
+
+      base_url <- paste0(session$clientData$url_protocol, "//",
+                         session$clientData$url_hostname,
+                         if (session$clientData$url_port != "") paste0(":", session$clientData$url_port),
+                         session$clientData$url_pathname)
+
+      if (length(params) > 0) {
+        query_string <- paste(names(params), params, sep = "=", collapse = "&")
+        paste0(base_url, "?", query_string)
+      } else {
+        base_url
+      }
+    }
+    defaults <- readRDS("defaults.rds")
+    # print(paste("Defaults-alpha:", class(defaults)))
+    bookmark_url <- build_bookmark_url(input, defaults)
+    # print(paste("URL:", bookmark_url))
+
+
+    div(
+      tags$a(href = paste0(bookmark_url, "&s=0"),
+             list(
+               icon("link",
+                    class = "export-links")),
+             target = "_blank",
+             title = "Link without sidebar"),
+      tags$a(href = bookmark_url,
+             list(
+               "Shareable URL"),
+             target = "_blank",
+             title = "Right-click to copy link")
+    )
+  })
+
+  ##### starting data #####
+  starting_data <- reactive({
+    if (!is.null(parseQueryString(session$clientData$url_search)[['u']])) {
+      the_u <- parseQueryString(session$clientData$url_search)[['u']]
+
+      if (stringr::str_detect(the_u, "^http")) {
+        the_u |>
+          get_online_file() |>
+          load_network_file()
+      } else {
+        the_u |>
+          load_network_file()
+      }
+    } else {
+      readr::read_csv("data/pepys_reciprocity-edges_extra.csv") |>
+        select(-date)
+    }
+  })
+
+  ##### from_input() #####
+
+  from_input <- reactive({
+    if (input$data_source == "URL") {
+      req(input$u) |>
+        get_online_file() |>
+        load_network_file()
+    } else {
+      file <- req(input$file)
+      file$datapath |>
+        load_network_file()
+    }
+  }) |>
+    bindEvent(
+      input$load_button)
+
+  ##### the_df() #####
+
+  the_df <- reactive({
+    if (input$load_button == 0) {
+      starting_data()
+    } else {
+      from_input()
+    }
+  })
+
+  ##### observe changes to the_middle() #####
   observe({
     updateSelectInput(
       inputId = "source",
@@ -395,6 +565,8 @@ server <- function(input, output) {
           input$source
         } else if ("source" %in% colnames(the_middle())) {
           "source"
+        } else if ("Source" %in% colnames(the_middle())) {
+          "Source"
         } else {
           ""
         })
@@ -407,15 +579,18 @@ server <- function(input, output) {
           input$target
         } else if ("target" %in% colnames(the_middle())) {
           "target"
+        } else if ("Target" %in% colnames(the_middle())) {
+          "Target"
         } else {
           ""
         })
+    req(is.null(values$pend_))
 
     updateSelectInput(
       inputId = "separate_col",
       choices = colnames(the_middle()),
       selected =
-        if (input$separate_col %in% colnames(the_csv())) {
+        if (input$separate_col %in% colnames(the_df())) {
           input$separate_col
         } else {
           ""
@@ -425,7 +600,7 @@ server <- function(input, output) {
       inputId = "split_col",
       choices = colnames(the_middle()),
       selected =
-        if (input$split_col %in% colnames(the_csv())) {
+        if (input$split_col %in% colnames(the_df())) {
           input$split_col
         } else {
           ""
@@ -435,7 +610,7 @@ server <- function(input, output) {
       inputId = "combine_col1",
       choices = colnames(the_middle()),
       selected =
-        if (input$combine_col1 %in% colnames(the_csv())) {
+        if (input$combine_col1 %in% colnames(the_df())) {
           input$combine_col1
         } else {
           ""
@@ -445,34 +620,11 @@ server <- function(input, output) {
       inputId = "combine_col2",
       choices = colnames(the_middle()),
       selected =
-        if (input$combine_col2 %in% colnames(the_csv())) {
+        if (input$combine_col2 %in% colnames(the_df())) {
           input$combine_col2
         } else {
           ""
         })
-
-    # updateSelectInput(
-    #   inputId = "color_col",
-    #   choices = c("", colnames(the_result())))
-
-    updateSelectInput(
-      inputId = "label_col",
-      choices = c("",
-                  colnames(the_result()) |>
-                    str_subset("target", negate = TRUE)))
-
-    updateSelectInput(
-      inputId = "size_col",
-      choices = c("", colnames(the_result())),
-      selected = ifelse(
-        input$load_data == "starwars",
-        "degree",
-        "")
-      )
-
-    updateSelectInput(
-      inputId = "weight_col",
-      choices = c("", colnames(the_result())))
   })
 
   observeEvent(input$do_split,{
@@ -493,63 +645,37 @@ server <- function(input, output) {
         })},
     ignoreInit = TRUE)
 
-  observeEvent(input$show_label,{
+  observeEvent(input$label,{
     updateSelectInput(
       inputId = "label_col",
       selected =
-        if (input$show_label == FALSE) {
+        if (input$label == FALSE) {
           ""
         } else if ("source" %in% colnames(the_result())) {
           "source"
         })},
     ignoreInit = TRUE)
 
-  observeEvent(input$show_color,{
-    updateSelectInput(
-      inputId = "color_col",
-      choices = c("", colnames(the_result())),
-      selected = case_when(
-        input$show_color == FALSE ~ "",
-        input$load_data == "miserables" ~ "group",
-        input$load_data == "starwars" ~ "colour",
-        .default = ""
-        )
-      )},
-    ignoreInit = TRUE)
-
-  observeEvent(input$show_weight,{
+  observeEvent(input$weighted,{
     updateSelectInput(
       inputId = "weight_col",
       selected =
-        if (input$show_weight == FALSE) {
+        if (input$weighted == FALSE) {
           ""
         } else if ("weight" %in% colnames(the_result())) {
           "weight"
         })},
     ignoreInit = TRUE)
 
-  observeEvent(c(input$load_data, input$file1),{
+  ##### Make changes on load file #####
+  observeEvent(c(input$load_button, input$file),{
     updateSelectInput(
       inputId = "separate_col",
-      choices = colnames(the_middle()),
-      # selected =
-      #   if (input$separate_col %in% colnames(the_csv())) {
-      #     input$separate_col
-      #   } else {
-      #     ""
-      #   }
-      )
+      choices = colnames(the_middle()))
 
     updateSelectInput(
       inputId = "split_col",
-      choices = colnames(the_middle()),
-      # selected =
-      #   if (input$split_col %in% colnames(the_csv())) {
-      #     input$split_col
-      #   } else {
-      #     ""
-      #   }
-    )
+      choices = colnames(the_middle()))
 
     updateTextInput(
       inputId = "separate",
@@ -606,102 +732,34 @@ server <- function(input, output) {
 
     updateCheckboxInput(inputId = "do_combo", value = FALSE)
 
-    updateCheckboxInput(inputId = "do_sna", value = FALSE)
+    # updateCheckboxInput(inputId = "do_sna", value = FALSE)
 
-    if (input$load_data == "starwars") {
-      bslib::accordion_panel_open(
-        id = "main_sidebar",
-        value = "Customize Plot"
-      )
-      bslib::accordion_panel_close(
-        id = "main_sidebar",
-        value = "Measure"
-      )
-      nav_select(
-        id = "whole_page",
-        selected = "D3"
-      )
-      updateCheckboxInput(
-        inputId = "show_color",
-        value = TRUE)
-      updateRadioButtons(
-        inputId = "color_branch",
-        selected = "from column")
-      updateSelectInput(
-        inputId = "color_col",
-        selected = "colour")
-      updateCheckboxInput(
-        inputId = "show_label",
-        label = "Label",
-        value = TRUE
-      )
-      # updateSelectInput(
-      #   inputId = "size_col",
-      #   selected = "degree",
-      #   choices = c("", colnames(the_result())))
-    } else if (input$load_data == "miserables") {
-      bslib::accordion_panel_open(
-        id = "main_sidebar",
-        value = "Measure"
-      )
-      updateCheckboxInput(
-        inputId = "do_sna",
-        value = TRUE
-      )
-      updateRadioButtons(
-        inputId = "choose_directedness",
-        selected = "undirected"
-      )
-      bslib::accordion_panel_close(
-        id = "main_sidebar",
-        value = "Customize Plot"
-      )
-      nav_select(
-        id = "whole_page",
-        selected = "ggplot2"
-      )
-      updateCheckboxInput(
-        inputId = "show_color",
-        value = TRUE)
-      # updateRadioButtons(
-      #   inputId = "color_branch",
-      #   selected = "from column")
-      updateSelectInput(
-        inputId = "color_col",
-        selected = "group")
-      updateCheckboxInput(
-        inputId = "show_label",
-        label = "Label",
-        value = FALSE
-      )
-    } else {
-      updateCheckboxInput(inputId = "show_color", value = FALSE)
-    }
-
-    if (input$load_data == "starwars") {
-      updateSelectInput(
-        inputId = "size_col",
-        selected = "degree",
-        choices = c("", colnames(the_result())))
-    }
-
-    updateCheckboxInput(inputId = "show_weight", value = FALSE)
-
-    if (input$load_data == "miserables") {
-      updateSelectInput(
-        inputId = "add_measures",
-        selected = "degree"
-      )
-    } else {
-      updateSelectInput(
-        inputId = "add_measures",
-        selected = "")
-    }
+    updateCheckboxInput(inputId = "weighted", value = FALSE)
 
   })
 
+  ##### observe changes to the_result() #####
+  observe({
+    req(the_result())
+    updateSelectInput(
+        inputId = "size_col",
+        selected = if (isolate(input$size_col) %in% colnames(the_result())) isolate(input$size_col) else "",
+        choices = c("", colnames(the_result_numeric())))
+    updateSelectInput(
+      inputId = "color_col",
+      selected = if (isolate(input$color_col) %in% colnames(the_result())) isolate(input$color_col) else "",
+      choices = c("", colnames(the_result())))
+    updateSelectInput(
+      inputId = "weight_col",
+      selected = if (isolate(input$weight_col) %in% colnames(the_result())) isolate(input$weight_col) else "",
+      choices = c("", colnames(the_result_numeric())))
+    updateSelectInput(
+      inputId = "label_col",
+      choices = c("", colnames(the_result())))
+  })
+
   the_middle <- reactive({
-    my_middle <- the_csv()
+    my_middle <- the_df()
 
     if (input$do_combo) {
       my_middle <- my_middle |>
@@ -732,6 +790,11 @@ server <- function(input, output) {
   the_result <- reactive({
     the_middle() |>
       get_result_df(input)
+  })
+
+  the_result_numeric <- reactive({
+    the_result() |>
+      select(where(is.numeric))
   })
 
   the_network <- reactive({
@@ -801,16 +864,24 @@ server <- function(input, output) {
         d3_version = 4,
         script = "forcegraph.js",
         options = list(
-          show_labels = input$show_label,
-          default_color = input$custom_col))
+          show_labels = input$label,
+          default_color = input$color_cus))
   })
 
-  output$csv_contents <- renderTable({
-    the_csv()
+  output$df_contents <- renderTable({
+    the_df()
   })
 
-  output$contents <- renderTable({
-    the_result()
+  output$contents <- DT::renderDataTable({
+    DT::datatable(
+      the_result(),
+      # filter = "top",
+      # editable = TRUE,
+      options = list(
+        dom = '<frt><"t-bottom"<"t-entries"l><"t-info"i><"t-page"p>>',
+        server = FALSE
+        # searching = TRUE
+      ))
   })
 
   output$ggt <- renderTable({
@@ -820,20 +891,14 @@ server <- function(input, output) {
   output$ggv <- renderPlot({
     the_data <- the_network() |>
       prepare_plot_df(input)
+    write_csv(the_data, "the_data.csv")
+    saveRDS(reactiveValuesToList(input), "input.rds")
 
     make_plot(the_data, input)
   })
 
   output$download_csv <- downloadHandler(
-    filename = function() {
-      if (is.null(input$file1)) {
-        input$load_data
-      } else {
-        input$file1
-      } |>
-        str_remove_all("[.].*$") |>
-        paste0(".csv")
-    },
+    filename = filename_handler("csv"),
     content = function(file) {
       the_result() |>
         readr::write_csv(file)
@@ -841,15 +906,7 @@ server <- function(input, output) {
   )
 
   output$download_json <- downloadHandler(
-    filename = function() {
-      if (is.null(input$file1)) {
-        input$load_data
-      } else {
-        input$file1
-      } |>
-        str_remove_all("[.].*$") |>
-        paste0(".json")
-    },
+    filename = filename_handler("json"),
     content = function(file) {
       the_result() |>
         df2d3_json() |>
@@ -858,48 +915,56 @@ server <- function(input, output) {
   )
 
   output$download_png <- downloadHandler(
-    filename = function() {
-      if (is.null(input$file1)) {
-        input$load_data |>
-          paste0(".png")
-      } else {
-        input$file1 |>
-          str_remove_all("[.].*$") |>
-          paste0(".png")
-      }
-    },
+    filename = filename_handler("png"),
     content = function(file) {
       ggsave(file, width = 7, height = 7)
     }
   )
   output$download_pdf <- downloadHandler(
-    filename = function() {
-      if (is.null(input$file1)) {
-        input$load_data |>
-          paste0(".pdf")
-      } else {
-        input$file1 |>
-          str_remove_all("[.].*$") |>
-          paste0(".pdf")
-      }
-    },
+    filename = filename_handler("pdf"),
     content = function(file) {
       ggsave(file, width = 10, height = 10)
     }
 
   )
 
-  observeEvent(input$whole_page, {
-    if (input$whole_page == "D3") {
-      hide("layout_choice")
-      hide("show_arrow")
-      hide("show_curve")
-      hide("show_legend")
+  filename_handler <- function(filetype = "pdf") {
+    function() {
+      if (input$data_source == "URL" && input$u != "") {
+        input$u |>
+          stringr::str_extract("[a-z A-Z 0-9 \\- _]+[.]{1}+[a-zA-Z]{1,4}$") |>
+          str_remove_all("[.].*$") |>
+          paste0(".", filetype)
+      } else if (input$data_source == "upload" && !is.null(input$file)) {
+        input$file |>
+          str_remove_all("[.].*$") |>
+          paste0(".", filetype)
+      } else {
+        "network" |>
+          paste0(".", filetype)
+      }
+    }
+  }
+
+  observeEvent(input$p, {
+    if (input$p == "D3") {
+      hide("layout")
+      hide("arrow")
+      hide("curve")
+      hide("legend")
+      hide("weight_from")
+      updateSelectInput(
+        inputId = "weight_col",
+        label = "from column")
     } else {
-      show("layout_choice")
-      show("show_arrow")
-      show("show_curve")
-      show("show_legend")
+      show("layout")
+      show("arrow")
+      show("curve")
+      show("legend")
+      show("weight_from")
+      updateSelectInput(
+        inputId = "weight_col",
+        label = "")
     }
   })
 

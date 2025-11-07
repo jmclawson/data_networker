@@ -32,13 +32,13 @@ get_result_df <- function(df, input) {
   }
 
   if (input$do_sna &&
-      length(input$add_measures) > 0) {
+      length(input$sna_add) > 0) {
 
     real_network <- my_result |>
       tidyr::drop_na(source, target) |>
       network::network(multiple = TRUE)
 
-    if (input$choose_directedness == "undirected") {
+    if (input$directed == "undirected") {
       the_gmode <- "graph"
     } else {
       the_gmode <- "digraph"
@@ -48,24 +48,24 @@ get_result_df <- function(df, input) {
       data.frame(
         node = map_chr(real_network$val,
                        \(x) x$vertex.names),
-        degree = sna::degree(
+        degree = if ("degree" %in% input$sna_add) {sna::degree(
           real_network,
-          gmode = the_gmode),
-        betweenness = sna::betweenness(
+          gmode = the_gmode)} else {""},
+        betweenness = if ("betweenness" %in% input$sna_add) {sna::betweenness(
           real_network,
-          gmode = the_gmode),
-        closeness = sna::closeness(
+          gmode = the_gmode)} else {""},
+        closeness = if ("closeness" %in% input$sna_add) {sna::closeness(
           real_network,
-          gmode = the_gmode),
-        gil_schmidt = sna::gilschmidt(
+          gmode = the_gmode)} else {""},
+        gil_schmidt = if ("gil_schmidt" %in% input$sna_add) {sna::gilschmidt(
           real_network,
-          gmode = the_gmode),
-        prestige = sna::prestige(
+          gmode = the_gmode)} else {""},
+        prestige = if ("prestige" %in% input$sna_add) {sna::prestige(
           real_network,
-          gmode = the_gmode),
-        stress_centrality = sna::stresscent(
+          gmode = the_gmode)} else {""},
+        stress_centrality = if ("stress_centrality" %in% input$sna_add) {sna::stresscent(
           real_network,
-          gmode = the_gmode)
+          gmode = the_gmode)} else {""}
       )
 
     my_result <- my_result |>
@@ -73,7 +73,7 @@ get_result_df <- function(df, input) {
         node_measures |>
           select(
             source = node,
-            all_of(input$add_measures)),
+            all_of(input$sna_add)),
         by = "source")
   }
 
@@ -84,15 +84,15 @@ get_network_df <- function(
     df,
     input = list(
       weight_from = "count",
-      show_arrow = TRUE,
-      layout_choice = "fruchtermanreingold")) {
+      arrow = TRUE,
+      layout = "fruchtermanreingold")) {
   the_df <- df |>
     relocate(source, target)
 
   if (input$weight_from == "count") {
-    if (!"count" %in% colnames(df)) {
+    if (!"the_count" %in% colnames(df)) {
       the_df <- the_df |>
-        mutate(count = n(),
+        mutate(the_count = n(),
                .by = c(source, target))
     } else {
       the_df <- the_df |>
@@ -108,8 +108,8 @@ get_network_df <- function(
 
   my_network <- my_network1 |>
     ggnetwork(
-      arrow.gap = ifelse(input$show_arrow, 0.025, 0),
-      layout = input$layout_choice#, "fruchtermanreingold",
+      arrow.gap = ifelse(input$arrow, 0.025, 0),
+      layout = input$layout#, "fruchtermanreingold",
       # weights = "weight"
     )
 
@@ -140,16 +140,19 @@ get_network_df <- function(
 prepare_plot_df <- function(df, input) {
   the_data <- df
 
-  if (input$color_col != "") {
+  if (!input$color_col %in% c("", "source")) {
     the_data <- the_data |>
       mutate(color_groups = get(input$color_col))
+  } else if (input$color_col == "source") {
+    the_data <- the_data |>
+      mutate(color_groups = vertex.names)
   }
 
   if (input$size_col != "") {
     the_data <- the_data |>
       mutate(
-        size_class = get(input$size_col),
-        text_size = 4 + 3 * as.integer(cut_interval(get(input$size_col), n = 5))
+        size_class = !!sym(input$size_col),
+        text_size = 4 + 3 * as.integer(cut_interval(!!sym(input$size_col), n = 5))
         )
   } else {
     the_data <- the_data |>
@@ -174,10 +177,11 @@ prepare_plot_df <- function(df, input) {
 
 make_plot <- function(df, input) {
   if (!"the_weight" %in% colnames(df) &&
-      "count" %in% colnames(df)) {
+      "the_count" %in% colnames(df)) {
     df <- df |>
-      rename(the_weight = count)
+      rename(the_weight = the_count)
   }
+  print(colnames(df))
 
   # df$text_size[is.na(df$text_size)] <- 4
 
@@ -187,35 +191,35 @@ make_plot <- function(df, input) {
       xend = xend, yend = yend))
 
 
-  if (input$show_arrow) {
-    if (input$show_weight) {
+  if (input$arrow) {
+    if (input$weighted) {
       my_plot <- my_plot +
         geom_edges(
           aes(linewidth = the_weight),
           color = "grey50",
           arrow = arrow(),
-          curvature = input$show_curve) +
+          curvature = input$curve) +
         labs(linewidth = ifelse(input$weight_col != "", input$weight_col, "weight"))
     } else {
       my_plot <- my_plot +
         geom_edges(
           color = "grey50",
           arrow = arrow(),
-          curvature = input$show_curve)
+          curvature = input$curve)
     }
   } else {
-    if (input$show_weight) {
+    if (input$weighted) {
       my_plot <- my_plot +
         geom_edges(
           aes(linewidth = the_weight),
           color = "grey50",
-          curvature = input$show_curve) +
+          curvature = input$curve) +
         labs(linewidth = input$weight_col)
     } else {
       my_plot <- my_plot +
         geom_edges(
           color = "grey50",
-          curvature = input$show_curve)
+          curvature = input$curve)
     }
   }
 
@@ -244,25 +248,21 @@ make_plot <- function(df, input) {
           size = 4) +
         labs(color = input$color_col)
     }
-    if (substr(df$color_groups[1], 1, 1) == "#") {
-      my_plot <- my_plot +
-        scale_color_identity() +
-        guides(color = "none")
-    }
 
-  } else if (input$show_color &&
+  } else if (input$color &&
              input$color_branch == 'custom') {
     if (input$size_col != "") {
       my_plot <- my_plot +
         geom_nodes(
           aes(size = size_class),
-          color = input$custom_col) +
+          color = input$color_cus) +
         labs(
           size = input$size_col)
     } else {
       my_plot <- my_plot +
-        geom_nodes(size = 4,
-                   color = input$custom_col)
+        geom_nodes(
+          size = 4,
+          color = input$color_cus)
     }
   } else {
     if (input$size_col != "") {
@@ -277,26 +277,146 @@ make_plot <- function(df, input) {
     }
   }
 
-  if (!input$label_col %in% c("", "source")) {
-    my_plot <- my_plot +
-      geom_text(
-        data = df |>
-          filter(!is.na(size_class)),
-        aes(label = the_label))
-  } else if (input$label_col == "source") {
-    my_plot <- my_plot +
-      geom_text(
-        data = df |>
-          filter(!is.na(size_class)),
-        aes(
-          label = vertex.names,
-          size = text_size))
+  if (!input$color) {
+    # no color
+    if (!input$label_col %in% c("", "source")) {
+      # label column is chosen
+      my_plot <- my_plot +
+        geom_shadowtext(
+          data = df |>
+            filter(!is.na(size_class)),
+          aes(
+            label = the_label),
+          color = "black",
+          bg.color = "white",
+          show.legend = FALSE)
+    } else if (input$label_col == "source") {
+      # label column is source
+      if (input$size_col != "") {
+        # size column is chosen
+        my_plot <- my_plot +
+          geom_shadowtext(
+            data = df |>
+              filter(!is.na(size_class)),
+            aes(
+              label = vertex.names,
+              size = text_size),
+            color = "black",
+            bg.color = "white",
+            show.legend = FALSE)
+      } else {
+        # size column isn't chosen
+        my_plot <- my_plot +
+          geom_shadowtext(
+            data = if ("the_count" %in% colnames(df)) {
+              df |>
+                filter(!is.na(the_count))
+            } else {
+              df |>
+                filter(!is.na(x))
+            },
+            aes(label = vertex.names),
+            color = "black",
+            bg.color = "white",
+            show.legend = FALSE)
+      }
+    }
+  } else if (input$color_branch != "from column") {
+    # custom color set for everything
+    if (!input$label_col %in% c("", "source")) {
+      # 1 custom color and label column is chosen
+      my_plot <- my_plot +
+        geom_shadowtext(
+          data = df |>
+            filter(!is.na(size_class)),
+          aes(
+            label = the_label),
+          color = input$color_cus,
+          bg.color = "white",
+          show.legend = FALSE)
+    } else if (input$label_col == "source") {
+      # 1 custom color and label column is source
+      if (input$size_col != "") {
+        # size column is chosen
+        my_plot <- my_plot +
+          geom_shadowtext(
+            data = df |>
+              filter(!is.na(size_class)),
+            aes(
+              label = vertex.names,
+              size = text_size),
+            color = input$color_cus,
+            bg.color = "white",
+            show.legend = FALSE)
+      } else {
+        # size isn't variable
+        my_plot <- my_plot +
+          geom_shadowtext(
+            data = df |>
+              filter(!is.na(the_count)),
+            aes(label = vertex.names),
+            color = input$color_cus,
+            bg.color = "white",
+            show.legend = FALSE)
+      }
+    }
+  } else {
+    # color set from column
+    if (!input$label_col %in% c("", "source")) {
+      # color set from column and label column is chosen
+      my_plot <- my_plot +
+        geom_shadowtext(
+          data = df |>
+            filter(!is.na(size_class)),
+          aes(
+            label = the_label,
+            color = color_groups),
+          bg.color = "white",
+          show.legend = FALSE)
+    } else if (input$label_col == "source" && "color_groups" %in% colnames(df)) {
+      # color set from column and label column is source
+      if (input$size_col != "") {
+        # size column is chosen
+        my_plot <- my_plot +
+          geom_shadowtext(
+            data = df |>
+              filter(!is.na(size_class)),
+            aes(
+              label = vertex.names,
+              size = text_size,
+              color = color_groups),
+            bg.color = "white",
+            show.legend = FALSE)
+      } else {
+        # size column is not chosen
+        my_plot <- my_plot +
+          geom_shadowtext(
+            data = if ("the_count" %in% colnames(df)) {
+              filter(df, !is.na(the_count))
+            } else {
+              df
+            },
+            aes(
+              label = vertex.names,
+              color = color_groups),
+            bg.color = "white",
+            show.legend = FALSE)
+      }
+    }
+  }
+
+  if ("color_groups" %in% colnames(df)) {
+    if (substr(df$color_groups[1], 1, 1) == "#") {
+      my_plot <- my_plot +
+        scale_color_identity() +
+        guides(color = "none")
+    }
   }
 
   my_plot <- my_plot +
     theme_blank()
 
-  if (!input$show_legend) {
+  if (!input$legend) {
     my_plot <- my_plot +
       theme(legend.position = "none")
   }
