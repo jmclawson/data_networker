@@ -204,9 +204,10 @@ sidebar_contents <- sidebar(
         value = TRUE),
       card(p(a(href = "https://ggplot2.tidyverse.org", "ggplot2"), "visualization uses", a(href = "https://briatte.github.io/ggnetwork/", "ggnetwork"), "to calculate geometries for nodes and edges. Network layouts listed here are from", a(href = "https://cran.r-project.org/web/packages/sna/index.html", "sna"), "."))
     ),
-    accordion_panel(
-      "Export",
-      icon = bsicons::bs_icon("cloud-download"),
+    p(
+    wellPanel(
+      # tags$h6(bsicons::bs_icon("cloud-download"),
+      #         "Export"),
       uiOutput("share_url"),
       div(
         downloadLink(
@@ -232,7 +233,7 @@ sidebar_contents <- sidebar(
           list(
             icon("file-pdf", class = "export-links"),
             "ggplot as PDF")))
-    )
+    ))
   )
 )
 
@@ -358,8 +359,8 @@ notes_contents <- nav_panel(
       )
     ),
     card(
-      card_header("shinyapps.io"),
-      p("This page is hosted on a free account with limitations on time and processing power, so don't be alarmed if it gets slow. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
+      card_header("Performance"),
+      p("This page is hosted on a free shinyapps.io account with limitations on time and processing power, so don't be alarmed if it gets slow. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
       p("A note on privacy: I can't see what you're uploading, but I do have access to logs that show when there's a problem with my code (which is written in R using Shiny, with JavaScript for the D3 visualization). Behind the scenes, things are supposed to be held only temporarily in your current session, but I can't guarantee that the file isn't cached by the server in one way or another. In other words, if it's sensitive data, you might not want to upload it.")
     )
   )

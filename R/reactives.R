@@ -181,7 +181,6 @@ make_plot <- function(df, input) {
     df <- df |>
       rename(the_weight = the_count)
   }
-  print(colnames(df))
 
   # df$text_size[is.na(df$text_size)] <- 4
 

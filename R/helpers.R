@@ -6,22 +6,32 @@ get_online_file <- function(url, localname = NULL) {
   url_miserables <- "https://raw.githubusercontent.com/mbostock/vega/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json"
 
   if (url == url_pepys) {
-    localname <- "data/pepys_reciprocity-edges_extra.csv"
+    the_name <- "pepys_reciprocity-edges_extra.csv"
   } else if (url == url_starwars) {
-    localname <- "data/interactions.csv"
+    the_name <- "interactions.csv"
   } else if (url == url_miserables) {
-    localname <- "data/miserables.csv"
+    the_name <- "miserables.csv"
+  } else {
+    # download data if it doesn't exist
+    the_domain <- url |>
+      urltools::domain() |>
+      str_replace_all("[.]", "_")
+    the_file <- url |>
+      stringr::str_replace_all("^.*[/]([A-Za-z _ -]*[.][a-zA-Z]{3,4})$", "\\1")
+    the_name <-
+      paste0(the_domain, "-", the_file)
   }
 
-  if(is.null(localname)){
-    localname <- url |>
-      stringr::str_extract("[a-z A-Z 0-9 \\- _]+[.]{1,1}+[a-zA-Z]{1,4}$")
+  localname <- fs::path("data", the_name)
+
+  if (!dir.exists("data")) {
+    dir.create("data")
   }
 
   if (!file.exists(localname)) {
-    url |>
-      download.file(localname)
+    download.file(url, localname, quiet = TRUE)
   }
+
   return(localname)
 }
 
@@ -73,11 +83,15 @@ network_json2df <- function(file) {
 ##### Load CSV or JSON #####
 
 load_network_file <- function(filename) {
-  ext <- tools::file_ext(filename)
-  validate(need(tolower(ext) %in% c("csv", "json"), "Please choose a CSV or JSON file."))
+  ext <- filename |>
+    tools::file_ext()
+
+  validate(
+    need(tolower(ext) %in% c("csv", "json"),
+         "File needs to be in CSV or JSON format with an appropriate extension."))
 
   if (tolower(ext) == "csv") {
-    results <- readr::read_csv(filename)
+    results <- readr::read_csv(filename, show_col_types = FALSE)
   } else if (tolower(ext) == "json") {
     results <- network_json2df(filename)
   }
@@ -138,7 +152,8 @@ df2d3_json <- function(
     the_df <-
       full_join(
         the_df,
-        data.frame(source = missing_sources)) |>
+        data.frame(source = missing_sources),
+        by = join_by({{ source }})) |>
       tidyr::drop_na({{ source }})
   }
 

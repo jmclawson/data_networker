@@ -132,7 +132,14 @@ ui <- function(request) { page_navbar(
   ggplot2_contents,
   d3_contents,
   notes_contents,
-  nav_spacer()
+  nav_spacer(),
+  nav_item(
+    tags$a(
+      shiny::icon("github"), "Source",
+      href = "https://github.com/jmclawson/data_networker/",
+      target = "_blank"
+    )
+  )
 )}
 
 ##### Bookmarking #####
@@ -148,8 +155,8 @@ server <- function(input, output, session) {
   observeEvent(session$clientData$url_search, {
     query <- session$clientData$url_search |>
       parseQueryString()
-    saveRDS(session, "session.rds")
-    saveRDS(reactiveValuesToList(session$clientData), "client_session.rds")
+    # saveRDS(session, "session.rds")
+    # saveRDS(reactiveValuesToList(session$clientData), "client_session.rds")
 
     # set URL with `u`
     if (!is.null(query[['u']])) {
@@ -173,7 +180,7 @@ server <- function(input, output, session) {
         session)
     }
     # set accordion with `a`
-    if (!is.null(query[['a']]) && query[['a']] %in% c("Import", "Adjust", "Choose", "Measure", "Customize", "Export")) {
+    if (!is.null(query[['a']]) && query[['a']] %in% c("Import", "Adjust", "Choose", "Measure", "Customize")) {
       accordion_panel_close(
         id = "a",
         values = c(
@@ -181,8 +188,7 @@ server <- function(input, output, session) {
           "Adjust",
           "Choose",
           "Measure",
-          "Customize",
-          "Export") |>
+          "Customize") |>
           {\(x) x[!x %in% query[['a']]]}()
       )
       accordion_panel_open(
@@ -331,7 +337,6 @@ server <- function(input, output, session) {
         value = query[['weighted']])
     }
     if (!is.null(query[['weight_col']])) {
-      print(the_result())
       updateSelectInput(
         inputId = "weight_col",
         selected = query[['weight_col']],
@@ -418,9 +423,8 @@ server <- function(input, output, session) {
         nullify_twins("color_branch") |>
         nullify_twins("color_col") |>
         nullify_twins("legend")
-      print(length(values$pend_))
     } else {
-      print(paste("unfinished:", names(values$pend_)))
+      # print(paste("unfinished:", names(values$pend_)))
     }
   })
 
@@ -439,7 +443,7 @@ server <- function(input, output, session) {
                        session$clientData$url_hostname,
                        if (session$clientData$url_port != "") paste0(":", session$clientData$url_port),
                        session$clientData$url_pathname)
-    the_link <- paste0(base_url, "?a=Customize&p=D3&s=0&u=https://github.com/evelinag/StarWars-social-network/blob/master/networks/starwars-full-interactions.json&color=1&label=1&size_col=degree&weighted=1&color_col=group&weight_col=weight&color_branch=from%20column&label_col=source")
+    the_link <- paste0(base_url, "?a=Customize&p=D3&s=0&u=https://raw.githubusercontent.com/evelinag/StarWars-social-network/refs/heads/master/networks/starwars-full-interactions.json&color=1&label=1&size_col=degree&weighted=1&color_col=group&weight_col=weight&color_branch=from%20column&label_col=source")
     HTML(paste0("<a href='", the_link, "'><em>Star Wars</em> characters</a>"))
   })
 
@@ -448,7 +452,7 @@ server <- function(input, output, session) {
                        session$clientData$url_hostname,
                        if (session$clientData$url_port != "") paste0(":", session$clientData$url_port),
                        session$clientData$url_pathname)
-    the_link <- paste0(base_url, "?a=Measure&p=ggplot2&u=https://github.com/mbostock/vega/blob/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json&color=1&label=1&do_sna=1&legend=0&directed=undirected&size_col=degree&color_col=group&color_branch=from%20column&label_col=source&sna_add=degree")
+    the_link <- paste0(base_url, "?a=Measure&p=ggplot2&u=https://raw.githubusercontent.com/mbostock/vega/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json&color=1&label=1&do_sna=1&legend=0&directed=undirected&size_col=degree&color_col=group&color_branch=from%20column&label_col=source&sna_add=degree")
     HTML(paste0("<a href='", the_link, "'><em>Les Misérables</em> characters</a>"))
   })
 
@@ -474,8 +478,6 @@ server <- function(input, output, session) {
     # nice bookmarks
     build_bookmark_url <- function(input, defaults, session = getDefaultReactiveDomain()) {
       params <- params_compare(input, defaults)
-      # print(paste("Params:", length(params)))
-      # print(paste("Defaults-1:", length(defaults)))
 
       base_url <- paste0(session$clientData$url_protocol, "//",
                          session$clientData$url_hostname,
@@ -490,9 +492,7 @@ server <- function(input, output, session) {
       }
     }
     defaults <- readRDS("defaults.rds")
-    # print(paste("Defaults-alpha:", class(defaults)))
     bookmark_url <- build_bookmark_url(input, defaults)
-    # print(paste("URL:", bookmark_url))
 
 
     div(
@@ -524,7 +524,7 @@ server <- function(input, output, session) {
           load_network_file()
       }
     } else {
-      readr::read_csv("data/pepys_reciprocity-edges_extra.csv") |>
+      readr::read_csv("data/pepys_reciprocity-edges_extra.csv", show_col_types = FALSE) |>
         select(-date)
     }
   })
@@ -891,8 +891,8 @@ server <- function(input, output, session) {
   output$ggv <- renderPlot({
     the_data <- the_network() |>
       prepare_plot_df(input)
-    write_csv(the_data, "the_data.csv")
-    saveRDS(reactiveValuesToList(input), "input.rds")
+    # write_csv(the_data, "the_data.csv")
+    # saveRDS(reactiveValuesToList(input), "input.rds")
 
     make_plot(the_data, input)
   })
