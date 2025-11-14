@@ -82,7 +82,7 @@ r2d3.onRender(function(graph, svg, width, height, options) {
     .attr("text-anchor", "middle")
     .style("font-size", "10px")
     .style("pointer-events", "none")  // so circles can still drag
-    .text(function(d){ return d.id; });
+    .text(function(d){ return d.label; });
 
   labels.style("display", options.show_labels ? null : "none");
 

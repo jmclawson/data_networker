@@ -870,12 +870,13 @@ server <- function(input, output, session) {
     )
     the_result() |>
       df2d3_json(
-        color = ifelse(
+        color_col = ifelse(
           input$color_branch == "from column",
           input$color_col,
           ""),
-        degree = input$size_col,
-        weight = input$weight_col) |>
+        label_col = if (input$label) {input$label_col} else {"source"},
+        degree_col = input$size_col,
+        weight_col = input$weight_col) |>
       r2d3::r2d3(
         d3_version = 4,
         script = "forcegraph.js",

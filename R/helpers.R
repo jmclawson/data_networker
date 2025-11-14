@@ -110,10 +110,18 @@ df2d3_json <- function(
     df,
     source = source,
     target = target,
+    label_col = "",
     color_col = "",
     degree_col = "",
     weight_col = "") {
   the_df <- df
+  if (label_col == "") {
+    the_df <- the_df |>
+      mutate(label = {{ source }})
+  } else {
+    the_df <- the_df |>
+      mutate(label = .data[[label_col]])
+  }
   if (color_col == "" || !color_col %in% colnames(the_df)) {
     the_df <- the_df |>
       mutate(color = 1)
@@ -161,6 +169,7 @@ df2d3_json <- function(
     the_df |>
     dplyr::select(
       id = {{ source }},
+      label,
       group = color,
       size = degree) |>
     dplyr::distinct()
