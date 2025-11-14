@@ -313,7 +313,9 @@ server <- function(input, output, session) {
     if (!is.null(query[['sna_add']])) {
       updateSelectInput(
         inputId = "sna_add",
-        selected = query[['sna_add']]
+        selected = query[names(query) == "sna_add"] |>
+          unlist() |>
+          unname()
       )
     }
   })
@@ -475,6 +477,20 @@ server <- function(input, output, session) {
       params
     }
 
+    # handle inputs that accept multiple values
+    construct_query_string <- function(params) {
+      qs <- list()
+
+      for (i in 1:length(params)) {
+        this_name <- names(params)[i]
+        this_value <- params[[i]]
+        this_qs <- paste(this_name, this_value, sep = "=", collapse = "&")
+        qs[[i]] <- this_qs
+      }
+
+      paste0(qs, collapse = "&")
+    }
+
     # nice bookmarks
     build_bookmark_url <- function(input, defaults, session = getDefaultReactiveDomain()) {
       params <- params_compare(input, defaults)
@@ -485,7 +501,7 @@ server <- function(input, output, session) {
                          session$clientData$url_pathname)
 
       if (length(params) > 0) {
-        query_string <- paste(names(params), params, sep = "=", collapse = "&")
+        query_string <- construct_query_string(params)
         paste0(base_url, "?", query_string)
       } else {
         base_url
