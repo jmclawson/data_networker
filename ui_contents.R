@@ -27,7 +27,7 @@ sidebar_contents <- sidebar(
           accept = c(".csv", ".json"))
       ),
       shiny::checkboxInput( # TODO: Add support for separated edge and network data
-        "separate_nodes", "Separate nodes file"),
+        "separate_nodes", "Load nodes separately"),
       conditionalPanel(
         "input.separate_nodes",
         radioButtons(
@@ -362,13 +362,21 @@ notes_contents <- nav_panel(
       p(
         "Many datasets work with the tool, both for adding network measurements and visualizing connections. Here are three:",
         tags$dl(
-          tags$dt(a(href="https://jmclawson.shinyapps.io/data_networker/?a=Customize&p=ggplot2&u=https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity-edges_extra.csv&arrow=1&color=1&label=1&do_sna=1&legend=0&sna_add=degree&directed=directed&size_col=degree&weighted=1&color_col=gender&color_branch=from%20column&label_col=source", "Pepys reciprocity data")),#uiOutput("link_pepys", inline = TRUE)),
+          tags$dt(a(
+            # href="https://jmclawson.shinyapps.io/data_networker/?a=Customize&p=ggplot2&u=https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity-edges_extra.csv&arrow=1&color=1&label=1&do_sna=1&legend=0&sna_add=degree&directed=directed&size_col=degree&weighted=1&color_col=gender&color_branch=from%20column&label_col=source",
+            href = "https://jmclawson.shinyapps.io/data_networker/?a=Adjust&p=ggplot2&u=https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity_rearranged.csv&arrow=1&color=1&label=1&do_sna=1&legend=0&target=recipient&combine=%20&sna_add=degree&do_combo=1&separate=,%20&size_col=degree&weighted=1&color_col=gender&label_col=source&do_separate=1&color_branch=from%20column&combine_col1=given&combine_col2=family&combine_name=source&separate_col=recipient",
+            "Pepys reciprocity data")),#uiOutput("link_pepys", inline = TRUE)),
           tags$dd(
             "Pepys data from",
             em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")),
             "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a",
             a(href = "https://mathhumanists.org", "Mathematical Humanists"),
-            "workshop led by Jessica Otis and Ashley Sanders."
+            "workshop led by Jessica Otis and Ashley Sanders. This example demonstrates data adjustments, with the original",
+            em("recipient"),
+            "column split into multiple rows and the",
+            em("given"), "and", em("family"),
+            "columns combined into a",
+            em("source"), "column."
           ),
           tags$dt(HTML("<a href='https://jmclawson.shinyapps.io/data_networker/?a=Customize&p=D3&s=0&u=https://raw.githubusercontent.com/evelinag/StarWars-social-network/refs/heads/master/networks/starwars-full-interactions.json&color=1&label=1&size_col=degree&weighted=1&color_col=group&weight_col=weight&color_branch=from%20column&label_col=source'><i>Star Wars</i> Characters</a>")),#uiOutput("link_star_wars", inline = TRUE)),
           tags$dd(

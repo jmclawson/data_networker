@@ -197,6 +197,38 @@ server <- function(input, output, session) {
       )
     }
 
+    # handle secondary data set
+    if (!is.null(query[['separate_nodes']])) {
+      updateCheckboxInput(
+        inputId = "separate_nodes",
+        value = query[['separate_nodes']]
+      )
+    }
+
+    if (!is.null(query[['u2']])) {
+      updateTextAreaInput(
+        session,
+        inputId = "u2",
+        value = query[['u2']]
+      )
+    }
+
+    if (!is.null(query[['match_col1']])) {
+      updateSelectInput(
+        session,
+        inputId = "match_col1",
+        selected = query[['match_col1']]
+      )
+    }
+
+    if (!is.null(query[['match_col2']])) {
+      updateSelectInput(
+        session,
+        inputId = "match_col2",
+        selected = query[['match_col2']]
+      )
+    }
+
     # use color
     # custom color from one column
     if (!is.null(query[['color']])) {
@@ -255,6 +287,12 @@ server <- function(input, output, session) {
       selected = query[['target']])
     }
 
+    if (!is.null(query[['do_separate']])) {
+      updateCheckboxInput(
+        inputId = "do_separate",
+        value = query[['do_separate']])
+    }
+
     if (!is.null(query[['separate_col']])) {
     updateSelectInput(
       inputId = "separate_col",
@@ -262,11 +300,47 @@ server <- function(input, output, session) {
       selected = query[['separate_col']])
     }
 
+    if (!is.null(query[['separate']])) {
+      updateTextInput(
+        inputId = "separate",
+        value = query[['separate']])
+    }
+
+    if (!is.null(query[['do_split']])) {
+      updateCheckboxInput(
+        inputId = "do_split",
+        value = query[['do_split']])
+    }
+
     if (!is.null(query[['split_col']])) {
     updateSelectInput(
       inputId = "split_col",
       choices = colnames(the_middle()),
       selected = query[['split_col']])
+    }
+
+    if (!is.null(query[['split']])) {
+      updateTextInput(
+        inputId = "split",
+        value = query[['split']])
+    }
+
+    if (!is.null(query[['split_col1']])) {
+      updateTextInput(
+        inputId = "split_col1",
+        value = query[['split_col1']])
+    }
+
+    if (!is.null(query[['split_col2']])) {
+      updateTextInput(
+        inputId = "split_col2",
+        value = query[['split_col2']])
+    }
+
+    if (!is.null(query[['do_combo']])) {
+      updateCheckboxInput(
+        inputId = "do_combo",
+        value = query[['do_combo']])
     }
 
     if (!is.null(query[['combine_col1']])) {
@@ -281,6 +355,12 @@ server <- function(input, output, session) {
       inputId = "combine_col2",
       choices = colnames(the_middle()),
       selected = query[['combine_col2']])
+    }
+
+    if (!is.null(query[['combine']])) {
+      updateTextInput(
+        inputId = "combine",
+        value = query[['combine']])
     }
 
     if (!is.null(query[['combine_name']])) {
@@ -402,13 +482,23 @@ server <- function(input, output, session) {
         nullify_twins("p") |>
         nullify_twins("a") |>
         nullify_twins("u") |>
+        # second source options
+        nullify_twins("separate_nodes") |>
+        nullify_twins("u2") |>
+        nullify_twins("match_col1") |>
+        nullify_twins("match_col2") |>
         # wrangling params
         nullify_twins("source") |>
         nullify_twins("target") |>
+        nullify_twins("do_separate") |>
         nullify_twins("separate_col") |>
+        nullify_twins("do_split") |>
         nullify_twins("split_col") |>
+        nullify_twins("split") |>
+        nullify_twins("do_combo") |>
         nullify_twins("combine_col1") |>
         nullify_twins("combine_col2") |>
+        nullify_twins("combine") |>
         nullify_twins("combine_name") |>
         # sna params
         nullify_twins("do_sna") |>
@@ -440,7 +530,7 @@ server <- function(input, output, session) {
         "data_source", "Edges data from")
     } else {
       updateCheckboxInput(session,
-        "separate_nodes", "Separate nodes file"
+        "separate_nodes", "Load nodes separately"
       )
       updateRadioButtons(session,
         "data_source", "")
@@ -555,7 +645,7 @@ server <- function(input, output, session) {
         base_url
       }
     }
-    defaults <- readRDS("defaults.rds")
+    defaults <- readRDS("defaults2.rds")
     bookmark_url <- build_bookmark_url(input, defaults)
 
 
@@ -578,11 +668,50 @@ server <- function(input, output, session) {
   starting_data <- reactive({
     if (!is.null(parseQueryString(session$clientData$url_search)[['u']])) {
       the_u <- parseQueryString(session$clientData$url_search)[['u']]
+      the_u2 <- parseQueryString(session$clientData$url_search)[['u2']]
 
-      if (stringr::str_detect(the_u, "^http")) {
+      if (stringr::str_detect(the_u, "^http") &&
+          !stringr::str_detect(the_u2, "^http")) {
         the_u |>
           get_online_file() |>
           load_network_file()
+      } else if (stringr::str_detect(the_u, "^http") &&
+                 stringr::str_detect(the_u2, "^http") &&
+                 !is.null(parseQueryString(session$clientData$url_search)[['match_col1']]) &&
+                 !is.null(parseQueryString(session$clientData$url_search)[['match_col2']])
+                 ) {
+        from_match1 <- parseQueryString(session$clientData$url_search)[['match_col1']]
+        from_match2 <- parseQueryString(session$clientData$url_search)[['match_col2']]
+
+        from_u1 <- the_u |>
+          get_online_file() |>
+          load_network_file()
+
+        from_u2 <- the_u2 |>
+          get_online_file() |>
+          load_network_file()
+
+        the_full <- full_join(
+          from_u1,
+          from_u2,
+          by = join_by(!!sym(from_match1) == !!sym(from_match2)))
+
+        return(the_full)
+      } else if (stringr::str_detect(the_u, "^http") &&
+                 stringr::str_detect(the_u2, "^http")) {
+        from_u1 <- the_u |>
+          get_online_file() |>
+          load_network_file()
+
+        from_u2 <- the_u2 |>
+          get_online_file() |>
+          load_network_file()
+
+        the_full <- full_join(
+          from_u1,
+          from_u2)
+
+        return(the_full)
       } else {
         the_u |>
           load_network_file()
@@ -863,7 +992,7 @@ server <- function(input, output, session) {
         combine_columns(!!sym(input$combine_col1),
                         !!sym(input$combine_col2),
                         input$combine,
-                        !!sym(input$combine_name))
+                        the_new = !!sym(input$combine_name))
     }
 
     if (nchar(input$separate) > 0 &&

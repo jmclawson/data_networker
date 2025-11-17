@@ -239,7 +239,7 @@ divide_column <- function(df, col0, split, new1, new2) {
   }
 }
 
-combine_columns <- function(df, col1, col2, combine = " ", new) {
+combine_columns <- function(df, col1, col2, combine = " ", the_new) {
   col1_str <- col1 |>
     rlang::enquo() |>
     rlang::quo_text() |>
@@ -252,8 +252,14 @@ combine_columns <- function(df, col1, col2, combine = " ", new) {
   if (col1_str %in% colnames(df) &&
       col2_str %in% colnames(df)) {
     df |>
-      mutate(
-        {{ new }} := paste0({{ col1 }}, combine, {{ col2 }}))
+      unite(
+        col = {{ the_new }},
+        {{ col1 }}, {{ col2 }},
+        sep = combine,
+        na.rm = TRUE
+      )
+      # mutate(
+      #   {{ new }} := paste0({{ col1 }}, combine, {{ col2 }}))
   } else {
     df
   }

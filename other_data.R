@@ -1,4 +1,7 @@
-
+if (!file.exists("raw_githubusercontent_com-pepys_reciprocity_rearranged.csv")) {
+  "https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity_rearranged.csv" |>
+    download.file("raw_githubusercontent_com-pepys_reciprocity_rearranged.csv")
+}
 
 if (!file.exists("data/interactions.csv")) {
   if (!file.exists("data/starwars-full-interactions.json")) {
@@ -21,4 +24,14 @@ if (!file.exists("data/miserables.csv")) {
   "data/miserables.json" |>
     network_json2df() |>
     write_csv("data/miserables.csv")
+}
+
+if (!file.exists("data/raw_githubusercontent_com-got_nodes.csv")) {
+  "https://raw.githubusercontent.com/melaniewalsh/network-analysis-lab/refs/heads/master/sample-datasets/game-of-thrones/got_nodes.csv" |>
+    download.file("data/raw_githubusercontent_com-got_nodes.csv")
+}
+
+if (!file.exists("data/raw_githubusercontent_com-got_edges.csv")) {
+  "https://raw.githubusercontent.com/melaniewalsh/network-analysis-lab/refs/heads/master/sample-datasets/game-of-thrones/got_edges.csv" |>
+    download.file("data/raw_githubusercontent_com-got_edges.csv")
 }
