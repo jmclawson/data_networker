@@ -45,7 +45,18 @@ sidebar_contents <- sidebar(
             "file2", "",
             accept = c(".csv", ".json"))
         ),
-        uiOutput("set_match_cols", inline = TRUE)
+        wellPanel(
+          id="set_match_cols_well",
+          selectInput(
+            "match_col1", "Match edges column...",
+            choices = ""
+          ),
+          selectInput(
+            "match_col2", "...to nodes column",
+            choices = ""
+          )
+        )
+        # uiOutput("set_match_cols", inline = TRUE)
         ),
       actionButton("load_button", "Load")
     ),
@@ -360,7 +371,7 @@ notes_contents <- nav_panel(
     card(
       card_header("Networking data"),
       p(
-        "Many datasets work with the tool, both for adding network measurements and visualizing connections. Here are three:",
+        "Many datasets work with the tool, both for adding network measurements and visualizing connections. Here are four:",
         tags$dl(
           tags$dt(a(
             # href="https://jmclawson.shinyapps.io/data_networker/?a=Customize&p=ggplot2&u=https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity-edges_extra.csv&arrow=1&color=1&label=1&do_sna=1&legend=0&sna_add=degree&directed=directed&size_col=degree&weighted=1&color_col=gender&color_branch=from%20column&label_col=source",
@@ -369,14 +380,12 @@ notes_contents <- nav_panel(
           tags$dd(
             "Pepys data from",
             em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")),
-            "showing reported reciprocity of social favors and gifts in the first week of April 1667. It was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew as part of a",
-            a(href = "https://mathhumanists.org", "Mathematical Humanists"),
-            "workshop led by Jessica Otis and Ashley Sanders. This example demonstrates data adjustments, with the original",
+            "showing reported reciprocity in the first week of April 1667 was collected from the diary by Paula Chan, James Clawson, Caroline Greer, Joseph Stuart, and Sarah Tew. This example splits the original",
             em("recipient"),
-            "column split into multiple rows and the",
+            "column into multiple rows and combines the",
             em("given"), "and", em("family"),
-            "columns combined into a",
-            em("source"), "column."
+            "columns into",
+            em("source.")
           ),
           tags$dt(HTML("<a href='https://jmclawson.shinyapps.io/data_networker/?a=Customize&p=D3&s=0&u=https://raw.githubusercontent.com/evelinag/StarWars-social-network/refs/heads/master/networks/starwars-full-interactions.json&color=1&label=1&size_col=degree&weighted=1&color_col=group&weight_col=weight&color_branch=from%20column&label_col=source'><i>Star Wars</i> Characters</a>")),#uiOutput("link_star_wars", inline = TRUE)),
           tags$dd(
@@ -394,12 +403,24 @@ notes_contents <- nav_panel(
             "Bostock also uses this dataset to demonstrate",
             HTML("<a href='https://observablehq.com/@d3/force-directed-graph/2'>JavaScript code</a>"),
             "for visualizing force-directed network layouts with D3."
+          ),
+          tags$dt(HTML("<a href='https://jmclawson.shinyapps.io/data_networker/?p=D3&u=https://raw.githubusercontent.com/melaniewalsh/network-analysis-lab/refs/heads/master/sample-datasets/game-of-thrones/got_edges.csv&color=1&label=1&do_sna=1&source=Source&target=Target&sna_add=degree&directed=directed&size_col=degree&weighted=1&color_cus=AD6B93AA&label_col=source&weight_col=Weight&separate_nodes=1&u2=https://raw.githubusercontent.com/melaniewalsh/network-analysis-lab/refs/heads/master/sample-datasets/game-of-thrones/got_nodes.csv&match_col1=Source&match_col2=Id'><i>Game of Thrones</i> Characters</a>")),#uiOutput("link_star_wars", inline = TRUE)),
+          tags$dd(
+            "Helpfully curated and reformatted by",
+            HTML('<a href="https://github.com/melaniewalsh/sample-social-network-datasets/tree/master">Melanie Waltz</a>,'),
+            "Andrew Beveridge and Jie Shan's data from", em("A Storm of Swords"), "combines separate files for nodes and edges. Beveridge and Shan demonstrate useful applications of network analyis in their",
+            a(href = "https://github.com/mathbeveridge/mathbeveridge.github.io/blob/master/files/NetworkofThrones.pdf", '"Network of Thrones"'),
+            "article."
           )
+
         )
       )
     ),
     card(
-      card_header("Performance"),
+      card_header("Method and Performance"),
+      p("This Shiny app grew out of a",
+        a(href = "https://mathhumanists.org", "Mathematical Humanists"),
+        'workshop led by Jessica Otis and Ashley Sanders in August 2024. I was very lucky to attend this NEH-funded workshop, among the first of a series of "Mathematical Humanists" events planned through 2026. Sadly, the grant that made this work possible was among those prematurely cancelled by DOGE in early 2025.'),
       p("This page is hosted on a free shinyapps.io account with limitations on time and processing power, so don't be alarmed if it gets slow. I've also", a(href = "https://github.com/jmclawson/data_networker", "shared the source code"), "if you'd like to run it on your own machine, which is much faster than running on a server over the Internet."),
       p("A note on privacy: I can't see what you're uploading, but I do have access to logs that show when there's a problem with my code (which is written in R using Shiny, with JavaScript for the D3 visualization). Behind the scenes, things are supposed to be held only temporarily in your current session, but I can't guarantee that the file isn't cached by the server in one way or another. In other words, if it's sensitive data, you might not want to upload it.")
     )

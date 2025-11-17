@@ -200,6 +200,7 @@ server <- function(input, output, session) {
     # handle secondary data set
     if (!is.null(query[['separate_nodes']])) {
       updateCheckboxInput(
+        session,
         inputId = "separate_nodes",
         value = query[['separate_nodes']]
       )
@@ -247,7 +248,7 @@ server <- function(input, output, session) {
       colourpicker::updateColourInput(
         session,
         inputId = "color_cus",
-        value = query[['color_cus']]
+        value = paste0("#",query[['color_cus']])
       )
     }
     # show arrow
@@ -537,34 +538,25 @@ server <- function(input, output, session) {
     }
   })
 
-  output$set_match_cols <- renderUI({
-    if (!is.null(from_input()) && !is.null(from_input2())) {
-      wellPanel(
-        selectInput(
-          "match_col1", "Match edges column...",
-          choices = colnames(from_input())
-        ),
-        selectInput(
-          "match_col2", "...to nodes column",
-          choices = colnames(from_input2())
-        )
-      )
+
+  observe({
+    updateSelectInput(
+      session,
+      "match_col1", "Match edges column...",
+      choices = colnames(req(from_input()))
+    )
+    updateSelectInput(
+      session,
+      "match_col2", "...to nodes column",
+      choices = colnames(req(from_input2()))
+    )
+
+    if (is.null(from_input2()) &&
+        is.null(parseQueryString(session$clientData$url_search)[['match_col1']]) &&
+        is.null(parseQueryString(session$clientData$url_search)[['match_col2']])) {
+      shinyjs::hide("set_match_cols_well")
     } else {
-      div(
-        style = "display: none;",
-        selectInput(
-          "match_col1", "",
-          choices = "",
-          selected = "",
-          width = 0
-        ),
-        selectInput(
-          "match_col2", "",
-          choices = "",
-          selected = "",
-          width = 0
-        )
-      )
+      shinyjs::show("set_match_cols_well")
     }
   })
 
@@ -609,7 +601,8 @@ server <- function(input, output, session) {
           params[[setting]] <- input[[setting]] |>
             as.character() |>
             stringr::str_replace_all("^TRUE$", "1") |>
-            stringr::str_replace_all("^FALSE$", "0")
+            stringr::str_replace_all("^FALSE$", "0") |>
+            stringr::str_remove_all("^#")# defang color_cus hexcode
         }
       }
       params
@@ -668,15 +661,19 @@ server <- function(input, output, session) {
   starting_data <- reactive({
     if (!is.null(parseQueryString(session$clientData$url_search)[['u']])) {
       the_u <- parseQueryString(session$clientData$url_search)[['u']]
-      the_u2 <- parseQueryString(session$clientData$url_search)[['u2']]
+      if (!is.null(parseQueryString(session$clientData$url_search)[['u2']])) {
+        the_u2 <- parseQueryString(session$clientData$url_search)[['u2']]
+      } else {
+        the_u2 <- NULL
+      }
 
       if (stringr::str_detect(the_u, "^http") &&
-          !stringr::str_detect(the_u2, "^http")) {
+          is.null(the_u2)) {
         the_u |>
           get_online_file() |>
           load_network_file()
       } else if (stringr::str_detect(the_u, "^http") &&
-                 stringr::str_detect(the_u2, "^http") &&
+                 !is.null(the_u2) &&
                  !is.null(parseQueryString(session$clientData$url_search)[['match_col1']]) &&
                  !is.null(parseQueryString(session$clientData$url_search)[['match_col2']])
                  ) {
@@ -690,6 +687,18 @@ server <- function(input, output, session) {
         from_u2 <- the_u2 |>
           get_online_file() |>
           load_network_file()
+
+        updateSelectInput(
+          session,
+          inputId = "match_col1",
+          choices = colnames(from_u1)
+        )
+
+        updateSelectInput(
+          session,
+          inputId = "match_col2",
+          choices = colnames(from_u2)
+        )
 
         the_full <- full_join(
           from_u1,
