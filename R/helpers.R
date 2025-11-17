@@ -96,10 +96,10 @@ load_network_file <- function(filename) {
     results <- network_json2df(filename)
   }
 
-  if (filename == "data/pepys_reciprocity-edges_extra.csv") {
-    results <- results |>
-      select(-date)
-  }
+  # if (filename == "data/pepys_reciprocity-edges_extra.csv") {
+  #   results <- results |>
+  #     select(-date)
+  # }
 
   results
 }

@@ -18,7 +18,7 @@ sidebar_contents <- sidebar(
         condition = "input.data_source == 'URL'",
         textAreaInput(
           "u", "",
-          placeholder = "https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity-edges_extra.csv")
+          placeholder = "")#https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity-edges_extra.csv")
       ),
       conditionalPanel(
         condition = "input.data_source == 'upload'",
@@ -26,6 +26,27 @@ sidebar_contents <- sidebar(
           "file", "",
           accept = c(".csv", ".json"))
       ),
+      shiny::checkboxInput( # TODO: Add support for separated edge and network data
+        "separate_nodes", "Separate nodes file"),
+      conditionalPanel(
+        "input.separate_nodes",
+        radioButtons(
+          "data_source2", "",
+          inline = TRUE,
+          choices = c("URL", "upload")),
+        conditionalPanel(
+          condition = "input.data_source2 == 'URL'",
+          textAreaInput(
+            "u2", "",)
+        ),
+        conditionalPanel(
+          condition = "input.data_source2 == 'upload'",
+          fileInput(
+            "file2", "",
+            accept = c(".csv", ".json"))
+        ),
+        uiOutput("set_match_cols", inline = TRUE)
+        ),
       actionButton("load_button", "Load")
     ),
     accordion_panel(
@@ -214,25 +235,33 @@ sidebar_contents <- sidebar(
           "download_csv",
           list(
             icon("file-csv", class = "export-links"),
-            "Gephi edges file"))),
+            "CSV for Gephi"),
+          title = "attributed edge table"
+          )),
       div(
         downloadLink(
           "download_json",
           list(
             icon("file", class = "export-links"),
-            "JSON file for D3"))),
+            "JSON for D3"),
+          title = "nodes and edges"
+        )),
       div(
         downloadLink(
           "download_png",
           list(
             icon("file-image", class = "export-links"),
-            "ggplot as PNG"))),
+            "PNG from ggplot2"),
+          title = "static visualization"
+        )),
       div(
         downloadLink(
           "download_pdf",
           list(
             icon("file-pdf", class = "export-links"),
-            "ggplot as PDF")))
+            "PDF from ggplot2"),
+          title = "scaleable visualization"
+        ))
     ))
   )
 )
@@ -246,7 +275,7 @@ tables_contents <- nav_panel(
     card_header("Loaded data"),
     max_height = 300,
     full_screen = TRUE,
-    tableOutput("df_contents")
+    DT::dataTableOutput("df_contents")
   ),
   fixedRow(
     layout_columns(
@@ -261,7 +290,7 @@ tables_contents <- nav_panel(
           ),
           tabPanel(
             title = "Geometry for ggplot2",
-            tableOutput("ggt")
+            DT::dataTableOutput("ggt")
           )
         )
       ),
@@ -333,7 +362,7 @@ notes_contents <- nav_panel(
       p(
         "Many datasets work with the tool, both for adding network measurements and visualizing connections. Here are three:",
         tags$dl(
-          tags$dt(uiOutput("link_pepys", inline = TRUE)),
+          tags$dt(a(href="https://jmclawson.shinyapps.io/data_networker/?a=Customize&p=ggplot2&u=https://raw.githubusercontent.com/jmclawson/data_networker/refs/heads/main/data/pepys_reciprocity-edges_extra.csv&arrow=1&color=1&label=1&do_sna=1&legend=0&sna_add=degree&directed=directed&size_col=degree&weighted=1&color_col=gender&color_branch=from%20column&label_col=source", "Pepys reciprocity data")),#uiOutput("link_pepys", inline = TRUE)),
           tags$dd(
             "Pepys data from",
             em(a(href = "https://www.pepysdiary.com", "The Diary of Samuel Pepys")),
@@ -341,19 +370,22 @@ notes_contents <- nav_panel(
             a(href = "https://mathhumanists.org", "Mathematical Humanists"),
             "workshop led by Jessica Otis and Ashley Sanders."
           ),
-          tags$dt(uiOutput("link_star_wars", inline = TRUE)),
+          tags$dt(HTML("<a href='https://jmclawson.shinyapps.io/data_networker/?a=Customize&p=D3&s=0&u=https://raw.githubusercontent.com/evelinag/StarWars-social-network/refs/heads/master/networks/starwars-full-interactions.json&color=1&label=1&size_col=degree&weighted=1&color_col=group&weight_col=weight&color_branch=from%20column&label_col=source'><i>Star Wars</i> Characters</a>")),#uiOutput("link_star_wars", inline = TRUE)),
           tags$dd(
             "Evelina Gabasova's", em("Star Wars"), "data is particularly worth exploring. Gabasova explains the data collection in a",
             a(href = "https://evelinag.com/blog/2015/12-15-star-wars-social-network/index.html#how", "blog post"),
             "and shares a",
             HTML("<a href='https://github.com/evelinag/StarWars-social-network/blob/master/networks/starwars-full-interactions.json'>JSON file on GitHub</a>.")
           ),
-          tags$dt(uiOutput("link_les_miserables", inline = TRUE)),
+          tags$dt(HTML("<a href='https://jmclawson.shinyapps.io/data_networker/?a=Measure&p=ggplot2&u=https://raw.githubusercontent.com/mbostock/vega/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json&color=1&label=1&do_sna=1&legend=0&directed=undirected&size_col=degree&color_col=group&color_branch=from%20column&label_col=source&sna_add=degree'><i>Les Misérables</i> Characters</a>")),#uiOutput("link_les_miserables", inline = TRUE)),
           tags$dd(
             "Also commonly studied in network analysis, Donald Knuth's", em("Les Misérables"), "data from his work on the Stanford Graph Base, can be found in a version from the",
             a(href = "https://github.com/mbostock/vega/blob/066309624c45b1ab15e0abbc295f90878b2f33a7/docs/data/miserables.json", "JSON file"),
             "made available by",
-            HTML("<a href='https://bost.ocks.org/mike/miserables/'>Mike Bostock</a>.")
+            HTML("<a href='https://bost.ocks.org/mike/miserables/'>Mike Bostock</a>."),
+            "Bostock also uses this dataset to demonstrate",
+            HTML("<a href='https://observablehq.com/@d3/force-directed-graph/2'>JavaScript code</a>"),
+            "for visualizing force-directed network layouts with D3."
           )
         )
       )

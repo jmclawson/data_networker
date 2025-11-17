@@ -430,6 +430,54 @@ server <- function(input, output, session) {
     }
   })
 
+  ##### Handle 2-file input #####
+  observe({
+    if (input$separate_nodes) {
+      updateCheckboxInput(session,
+        "separate_nodes", "Nodes data from"
+      )
+      updateRadioButtons(session,
+        "data_source", "Edges data from")
+    } else {
+      updateCheckboxInput(session,
+        "separate_nodes", "Separate nodes file"
+      )
+      updateRadioButtons(session,
+        "data_source", "")
+    }
+  })
+
+  output$set_match_cols <- renderUI({
+    if (!is.null(from_input()) && !is.null(from_input2())) {
+      wellPanel(
+        selectInput(
+          "match_col1", "Match edges column...",
+          choices = colnames(from_input())
+        ),
+        selectInput(
+          "match_col2", "...to nodes column",
+          choices = colnames(from_input2())
+        )
+      )
+    } else {
+      div(
+        style = "display: none;",
+        selectInput(
+          "match_col1", "",
+          choices = "",
+          selected = "",
+          width = 0
+        ),
+        selectInput(
+          "match_col2", "",
+          choices = "",
+          selected = "",
+          width = 0
+        )
+      )
+    }
+  })
+
   ##### Notes tab #####
   output$link_pepys <- renderUI({
     base_url <- paste0(session$clientData$url_protocol, "//",
@@ -462,7 +510,7 @@ server <- function(input, output, session) {
   output$share_url <- renderUI({
     # compare query params to default values
     ## (I only care about non-default values, and I
-    ## only care about those named in defaults.)
+    ## only care about those named in defaults.) # set_match_cols
     params_compare <- function(input, defaults) {
       params <- list()
       for (setting in names(defaults)) {
@@ -517,12 +565,12 @@ server <- function(input, output, session) {
                icon("link",
                     class = "export-links")),
              target = "_blank",
-             title = "Link without sidebar"),
+             title = "link without sidebar"),
       tags$a(href = bookmark_url,
              list(
-               "Shareable URL"),
+               "URL for sharing"),
              target = "_blank",
-             title = "Right-click to copy link")
+             title = "right-click to copy link")
     )
   })
 
@@ -540,8 +588,7 @@ server <- function(input, output, session) {
           load_network_file()
       }
     } else {
-      readr::read_csv("data/pepys_reciprocity-edges_extra.csv", show_col_types = FALSE) |>
-        select(-date)
+      readr::read_csv("data/pepys_reciprocity-edges_extra.csv", show_col_types = FALSE) #|> select(-date)
     }
   })
 
@@ -561,11 +608,45 @@ server <- function(input, output, session) {
     bindEvent(
       input$load_button)
 
+  from_input2 <- reactive({
+    if (!input$separate_nodes) {
+      return(NULL)
+    }
+
+    if (input$data_source2 == "URL") {
+      req(input$u2) |>
+        get_online_file() |>
+        load_network_file()
+    } else {
+      file <- req(input$file2)
+      file$datapath |>
+        load_network_file()
+    }
+  }) |>
+    bindEvent(
+      input$load_button)
+
   ##### the_df() #####
 
   the_df <- reactive({
     if (input$load_button == 0) {
       starting_data()
+    } else if (!is.null(from_input2()) &&
+               length(intersect(colnames(from_input()), colnames(from_input2()))) > 1) {
+      validate(
+        need(length(intersect(colnames(from_input()), colnames(from_input2()))) > 1,
+             "No matching column names.")
+        )
+      full_join(
+        from_input2(),
+        from_input())
+    } else if (!is.null(from_input2()) &&
+        !is.null(input$match_col1) && !is.null(input$match_col2) &&
+        input$match_col1 != "" && input$match_col2 != "") {
+      full_join(
+        from_input2(),
+        from_input(),
+        by = join_by(!!sym(input$match_col2) == !!sym(input$match_col1)))
     } else {
       from_input()
     }
@@ -885,8 +966,13 @@ server <- function(input, output, session) {
           default_color = input$color_cus))
   })
 
-  output$df_contents <- renderTable({
-    the_df()
+  output$df_contents <- DT::renderDataTable({
+    DT::datatable(
+      the_df(),
+      options = list(
+        dom = '<frt><"t-bottom"<"t-entries"l><"t-info"i><"t-page"p>>',
+        server = FALSE)
+    )
   })
 
   output$contents <- DT::renderDataTable({
@@ -901,8 +987,13 @@ server <- function(input, output, session) {
       ))
   })
 
-  output$ggt <- renderTable({
-    the_network()
+  output$ggt <- DT::renderDataTable({
+    DT::datatable(
+      the_network(),
+      options = list(
+        dom = '<frt><"t-bottom"<"t-entries"l><"t-info"i><"t-page"p>>',
+        server = FALSE)
+    )
   })
 
   output$ggv <- renderPlot({

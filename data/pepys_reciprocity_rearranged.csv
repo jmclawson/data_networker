@@ -1,0 +1,22 @@
+date,given,family,suffix,gender,position,type (favor/gift),recipient
+1667-04-01,John,Minnes,,M,"Vice Admiral, Sir",favor,Samuel Pepys
+1667-04-01,Samuel,Pepys,,M,ego,favor,Balthazar St. Michel
+1667-04-01,William,Coventry,,M,"Statesman, Sir",favor,"Samuel Pepys, Samuel Pepys"
+1667-04-02,Anthony,Deane,,M,Mr.,gift,Samuel Pepys
+1667-04-03,James,Stuart,,M,Duke,favor,Balthazar St. Michel
+1667-04-03,William,Batten,,M,Sir,favor,Balthazar St. Michel
+1667-04-03,William,Brouncker,,M,Lord,favor,James Carkesse
+1667-04-04,Balthazar,St. Michel,,M,Brother in law,favor,Elizabeth Pepys
+1667-04-04,George,Carteret,,M,Sir,favor,William Coventry
+1667-04-04,Samuel,Pepys,,M,ego,favor,"Balthazar St. Michel, Balthazar St. Michel, George Monck"
+1667-04-05,Samuel,Pepys,,M,ego,favor,"Howlett, Elizabeth Pearse"
+1667-04-06,Samuel,Pepys,,M,ego,favor,"Balthazar St. Michel, Balthazar St. Michel"
+1667-04-07,Charles,Stuart,II,M,king,favor,John Belasyse
+1667-04-07,Elizabeth,Turner,,F,Mrs.; wife of Thomas Turner,favor,Samuel Pepys
+1667-04-07,Samuel,Pepys,,M,ego,favor,"Balthazar St. Michel, Balthazar St. Michel, Balthazar St. Michel, Elizabeth Turner"
+NA,,Howlett,,F,Mrs.,NA,NA
+NA,Elizabeth,Pearse,,F,Mrs.,NA,NA
+NA,Elizabeth,Pepys,,F,wife,NA,NA
+NA,George,Monck,,M,Duke of Albemarle,NA,NA
+NA,James,Carkesse,,M,NA,NA,NA
+NA,John,Belasyse,,M,Baron,NA,NA
